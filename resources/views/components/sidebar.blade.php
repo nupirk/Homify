@@ -10,7 +10,7 @@
             <div class="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center flex-shrink-0">
                 <i class="fas fa-home text-white text-base"></i>
             </div>
-            <h1 class="ml-3 text-base font-semibold text-white sidebar-text truncate">Urban Admin</h1>
+            <h1 class="ml-3 text-base font-semibold text-white sidebar-text truncate">Homify Admin</h1>
         </div>
         <!-- Desktop Toggle Button -->
         <button id="sidebar-toggle"

@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Order Details - UrbanServe')
+@section('title', 'Order Details - HomifyServe')
 
 @section('content')
     <div class="space-y-6">

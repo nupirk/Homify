@@ -18,7 +18,7 @@ return [
 
     'admin' => [
         'name' => env('ADMIN_NAME', 'Super Admin'),
-        'email' => env('ADMIN_EMAIL', 'admin@urbanserve.com'),
+        'email' => env('ADMIN_EMAIL', 'admin@homify.com.np'),
         'phone' => env('ADMIN_PHONE', '+977-9800000000'),
         'password' => env('ADMIN_PASSWORD'),
     ],

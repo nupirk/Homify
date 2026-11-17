@@ -5,23 +5,23 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     {{-- Canonical/OG base: public marketing domain (config, not APP_URL - gateway callbacks need APP_URL). --}}
     @php($site = config('app.public_url'))
-    <title>@yield('title', 'Urban: Home Services Nepal — Book Verified Cleaners, Plumbers & Electricians')</title>
-    <meta name="description" content="@yield('description', 'Book trusted cleaners, plumbers and electricians across Nepal. Pay after service with cash, eSewa, Khalti or ConnectIPS.')">
+    <title>@yield('title', 'Homify — Home services in Nepal, booked in minutes')</title>
+    <meta name="description" content="@yield('description', 'Book verified cleaners, plumbers and electricians across Nepal. Track the job live and pay after the service.')">
     <meta name="robots" content="index, follow">
     <link rel="canonical" href="@yield('canonical', $site . '/')">
 
     {{-- Open Graph --}}
     <meta property="og:type" content="website">
-    <meta property="og:site_name" content="Urban">
-    <meta property="og:title" content="@yield('title', 'Urban: Home Services Nepal — Book Verified Cleaners, Plumbers & Electricians')">
-    <meta property="og:description" content="@yield('description', 'Book trusted cleaners, plumbers and electricians across Nepal. Pay after service with cash, eSewa, Khalti or ConnectIPS.')">
+    <meta property="og:site_name" content="Homify">
+    <meta property="og:title" content="@yield('title', 'Homify — Home services in Nepal, booked in minutes')">
+    <meta property="og:description" content="@yield('description', 'Book verified cleaners, plumbers and electricians across Nepal. Track the job live and pay after the service.')">
     <meta property="og:url" content="@yield('canonical', $site . '/')">
     <meta property="og:image" content="{{ $site }}/img/og.png">
     <meta property="og:locale" content="en_NP">
 
     {{-- Twitter --}}
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="@yield('title', 'Urban: Home Services Nepal')">
+    <meta name="twitter:title" content="@yield('title', 'Homify — Home services in Nepal')">
     <meta name="twitter:description" content="@yield('description', 'Book trusted cleaners, plumbers and electricians across Nepal. Pay after service.')">
     <meta name="twitter:image" content="{{ $site }}/img/og.png">
 
@@ -40,8 +40,8 @@
     <header class="site-header" id="siteHeader">
         <div class="container">
             <a class="brand" href="/">
-                <span class="brand-mark" aria-hidden="true">U</span>
-                Urban
+                <span class="brand-mark" aria-hidden="true">H</span>
+                Homify
             </a>
             <nav class="site-nav" aria-label="Main">
                 <a href="/#services">Services</a>
@@ -62,8 +62,8 @@
             <div class="footer-grid">
                 <div>
                     <a class="brand" href="/">
-                        <span class="brand-mark" aria-hidden="true">U</span>
-                        Urban
+                        <span class="brand-mark" aria-hidden="true">H</span>
+                        Homify
                     </a>
                     <p>Home services, done right. Verified professionals across Nepal.</p>
                 </div>
@@ -76,8 +76,8 @@
                     </section>
                     <section>
                         <h4>Partners</h4>
-                        <a href="/#partners">Earn with Urban</a>
-                        <a href="mailto:support@urban.com.np?subject=Partner%20application">Apply as a partner</a>
+                        <a href="/#partners">Earn with Homify</a>
+                        <a href="mailto:support@homify.com.np?subject=Partner%20application">Apply as a partner</a>
                     </section>
                     <section>
                         <h4>Legal</h4>
@@ -86,12 +86,12 @@
                     </section>
                     <section>
                         <h4>Support</h4>
-                        <a href="mailto:support@urban.com.np">support@urban.com.np</a>
+                        <a href="mailto:support@homify.com.np">support@homify.com.np</a>
                     </section>
                 </div>
             </div>
             <div class="copyright">
-                <span>&copy; {{ date('Y') }} Urban Services Pvt. Ltd. Kathmandu, Nepal</span>
+                <span>&copy; {{ date('Y') }} Homify Services Pvt. Ltd. Kathmandu, Nepal</span>
                 <span>Made in Nepal</span>
             </div>
         </div>

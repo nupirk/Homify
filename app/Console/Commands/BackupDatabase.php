@@ -40,7 +40,7 @@ class BackupDatabase extends Command
 
         $binary = config('app.pg_dump_binary', 'pg_dump');
         $config = config("database.connections.{$connection}");
-        $file = $directory . DIRECTORY_SEPARATOR . 'urban_' . now()->format('Ymd_His') . '.dump';
+        $file = $directory . DIRECTORY_SEPARATOR . 'homify_' . now()->format('Ymd_His') . '.dump';
 
         $process = new Process([
             $binary,

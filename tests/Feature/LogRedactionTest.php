@@ -55,7 +55,7 @@ class LogRedactionTest extends TestCase
         $response = $this->postJson('/api/v1/register', [
             'first_name' => 'Log',
             'last_name' => 'Leak',
-            'email' => 'log.leak@urban.test',
+            'email' => 'log.leak@homify.test',
             'phone' => '9812345678',
             'password' => 'secretPassword123',
             'password_confirmation' => 'secretPassword123',
@@ -64,7 +64,7 @@ class LogRedactionTest extends TestCase
 
         $response->assertSuccessful();
 
-        $otp = OtpVerification::where('email', 'log.leak@urban.test')->latest('id')->first();
+        $otp = OtpVerification::where('email', 'log.leak@homify.test')->latest('id')->first();
         $this->assertNotNull($otp, 'Registration should create an OTP record');
 
         $this->assertNothingLoggedContains($otp->otp, 'the registration OTP code');
@@ -88,7 +88,7 @@ class LogRedactionTest extends TestCase
         $partner = User::create([
             'first_name' => 'Payout',
             'last_name' => 'Partner',
-            'email' => 'payout.partner@urban.test',
+            'email' => 'payout.partner@homify.test',
             'phone' => '9800002222',
             'password' => Hash::make('secretPassword123'),
             'user_type' => 'partner',

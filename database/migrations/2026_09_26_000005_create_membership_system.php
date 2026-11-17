@@ -55,7 +55,7 @@ return new class extends Migration
         DB::table('membership_plans')->updateOrInsert(
             ['code' => 'urban_plus'],
             [
-                'name' => 'Urban Plus',
+                'name' => 'Homify Plus',
                 'description' => '10% off every booking, up to Rs 500 saved per order.',
                 'price' => 299.00,
                 'duration_days' => 30,

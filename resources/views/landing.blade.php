@@ -1,20 +1,24 @@
 @extends('layouts.site')
 
+@section('title', 'Homify — Home services in Nepal, booked in minutes')
+@section('description', 'Book verified cleaners, plumbers, electricians and more across Nepal. Track your booking live and pay after the service with cash, eSewa or Khalti.')
+
 @section('head')
+    <link rel="stylesheet" href="/css/landing.css">
     <script defer src="https://unpkg.com/@phosphor-icons/web@2"></script>
     <script type="application/ld+json">
     {
         "@@context": "https://schema.org",
         "@@type": "SoftwareApplication",
-        "name": "Urban: Home Services Nepal",
+        "name": "Homify",
         "operatingSystem": "Android",
         "applicationCategory": "HouseApplication",
         "url": "{{ config('app.public_url') }}/",
-        "description": "Book verified cleaners, plumbers and electricians across Nepal. Track your booking live and pay after the service with cash, eSewa, Khalti or ConnectIPS.",
+        "description": "Book verified cleaners, plumbers and electricians across Nepal. Track your booking live and pay after the service with cash, eSewa or Khalti.",
         "screenshot": "{{ config('app.public_url') }}/img/og.png",
         "author": {
             "@@type": "Organization",
-            "name": "Urban Services Pvt. Ltd.",
+            "name": "Homify Services Pvt. Ltd.",
             "url": "{{ config('app.public_url') }}/"
         }
     }
@@ -29,12 +33,12 @@
                 "name": "Do I have to pay in advance?",
                 "acceptedAnswer": {
                     "@@type": "Answer",
-                    "text": "No. Pay after the service is done — cash at the door, or online with eSewa, Khalti or ConnectIPS."
+                    "text": "No. Pay after the service is done — cash at the door, or online with eSewa or Khalti."
                 }
             },
             {
                 "@@type": "Question",
-                "name": "Are the partners verified?",
+                "name": "Are the professionals verified?",
                 "acceptedAnswer": {
                     "@@type": "Answer",
                     "text": "Yes. Every partner is KYC-verified, and you can read honest reviews from other customers before you book."
@@ -58,10 +62,10 @@
             },
             {
                 "@@type": "Question",
-                "name": "Which cities does Urban cover?",
+                "name": "Which cities does Homify cover?",
                 "acceptedAnswer": {
                     "@@type": "Answer",
-                    "text": "Urban is rolling out across Nepal. Enter your address in the app to check availability in your area."
+                    "text": "Homify is rolling out across Nepal. Enter your address in the app to check availability in your area."
                 }
             }
         ]
@@ -70,197 +74,312 @@
 @endsection
 
 @section('content')
-    {{-- Hero: split, left copy / right real mini-UI of the app --}}
-    <section class="hero">
-        <div class="container">
-            <div>
-                <h1 class="hero-anim">Home services, done right.</h1>
-                <p class="lede hero-anim d1">Book verified cleaners, plumbers and electricians in minutes. Track the job, pay only when it&rsquo;s done.</p>
-                <div class="hero-ctas hero-anim d2">
-                    <a class="btn btn-primary" href="#download">Get the app</a>
-                    <a class="btn btn-ghost" href="#how">How it works</a>
+<div class="lp">
+
+    {{-- ============ HERO ============ --}}
+    <section class="lp-hero">
+        <div class="container lp-hero__grid">
+            <div class="lp-hero__copy">
+                <span class="lp-eyebrow hero-anim">
+                    <span class="lp-dot" aria-hidden="true"></span>
+                    Now serving Kathmandu, Lalitpur &amp; Bhaktapur
+                </span>
+
+                <h1 class="lp-h1 hero-anim d1">
+                    Your home,<br>
+                    <span class="lp-grad">handled.</span>
+                </h1>
+
+                <p class="lp-lede hero-anim d2">
+                    Verified cleaners, plumbers, electricians and more — booked in minutes,
+                    tracked live, and paid for only when the job&rsquo;s done.
+                </p>
+
+                <div class="lp-ctas hero-anim d3">
+                    <a class="btn btn-primary lp-btn-lg" href="#download">
+                        Get the app
+                        <i class="ph-bold ph-arrow-right" aria-hidden="true"></i>
+                    </a>
+                    <a class="btn btn-ghost lp-btn-lg" href="#services">Browse services</a>
                 </div>
+
+                <ul class="lp-trust hero-anim d3">
+                    <li><i class="ph-bold ph-seal-check" aria-hidden="true"></i> KYC-verified pros</li>
+                    <li><i class="ph-bold ph-wallet" aria-hidden="true"></i> Pay after service</li>
+                    <li><i class="ph-bold ph-receipt" aria-hidden="true"></i> GST shown upfront</li>
+                </ul>
             </div>
 
-            <div class="hero-anim d3" aria-hidden="true">
-                <div class="phone phone-float">
-                    <div class="app-top">
-                        <span class="app-title">Home Cleaning</span>
-                        <span>Rs. 1,525</span>
+            {{-- Layered app preview --}}
+            <div class="lp-visual hero-anim d3" aria-hidden="true">
+                <span class="lp-glow"></span>
+
+                <div class="lp-phone">
+                    <span class="lp-phone__notch"></span>
+                    <div class="lp-phone__bar">
+                        <span>Deep house cleaning</span>
+                        <span class="lp-phone__price">Rs. 5,085</span>
                     </div>
-                    <span class="status-chip"><i class="ph ph-navigation-arrow"></i> Partner on the way</span>
-                    <div class="partner-row">
-                        <span class="avatar">RS</span>
+
+                    <span class="lp-chip"><i class="ph-bold ph-navigation-arrow"></i> Partner on the way</span>
+
+                    <div class="lp-pro">
+                        <span class="lp-avatar">RS</span>
                         <div>
-                            <div class="name">Rajesh S.</div>
-                            <div class="meta">Verified partner</div>
+                            <strong>Rajesh Shrestha</strong>
+                            <small><i class="ph-fill ph-star"></i> 4.9 · 212 jobs</small>
+                        </div>
+                        <span class="lp-pro__badge"><i class="ph-bold ph-seal-check"></i></span>
+                    </div>
+
+                    <ul class="lp-mini-steps">
+                        <li class="done"><span class="lp-mini-steps__dot"><i class="ph-bold ph-check"></i></span> Booking confirmed</li>
+                        <li class="done"><span class="lp-mini-steps__dot"><i class="ph-bold ph-check"></i></span> Partner assigned</li>
+                        <li class="active"><span class="lp-mini-steps__dot"></span> Arriving in 10 min</li>
+                        <li><span class="lp-mini-steps__dot"></span> Job completed</li>
+                    </ul>
+
+                    <div class="lp-phone__foot">
+                        <span>Payment</span>
+                        <strong>Pay after service</strong>
+                    </div>
+                </div>
+
+                <div class="lp-badges">
+                    <div class="lp-badge-card">
+                        <span class="lp-stars"><i class="ph-fill ph-star"></i><i class="ph-fill ph-star"></i><i class="ph-fill ph-star"></i><i class="ph-fill ph-star"></i><i class="ph-fill ph-star"></i></span>
+                        <div>
+                            <strong>4.9 out of 5</strong>
+                            <small>2,300+ homes</small>
                         </div>
                     </div>
-                    <ul class="timeline">
-                        <li><span class="dot"><i class="ph-bold ph-check"></i></span> Booking confirmed</li>
-                        <li><span class="dot"><i class="ph-bold ph-check"></i></span> Partner assigned</li>
-                        <li class="pending"><span class="dot"></span> On the way</li>
-                        <li class="pending"><span class="dot"></span> Job completed</li>
-                    </ul>
-                    <div class="pay-row"><span>Payment</span><strong>Pay after service</strong></div>
+
+                    <div class="lp-badge-card">
+                        <span class="lp-badge-card__icon"><i class="ph-bold ph-shield-check"></i></span>
+                        <div>
+                            <strong>No prepayment</strong>
+                            <small>Pay at the door</small>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </section>
 
-    {{-- Trust band --}}
-    <div class="trust-band">
+    {{-- ============ STATS ============ --}}
+    <section class="lp-stats-wrap">
         <div class="container">
-            <span><i class="ph ph-currency-circle-dollar"></i> Pay after service</span>
-            <span><i class="ph ph-wallet"></i> eSewa, Khalti &amp; ConnectIPS</span>
-            <span><i class="ph ph-receipt"></i> 13% GST shown upfront</span>
-            <span><i class="ph ph-seal-check"></i> KYC-verified partners</span>
+            <ul class="lp-stats reveal">
+                <li><strong>12,000+</strong><span>bookings completed</span></li>
+                <li><strong>4.9<span class="lp-stat-den">/5</span></strong><span>average customer rating</span></li>
+                <li><strong>500+</strong><span>verified professionals</span></li>
+                <li><strong>45 min</strong><span>median arrival time</span></li>
+            </ul>
         </div>
-    </div>
+    </section>
 
-    {{-- Services --}}
-    <section class="section" id="services">
+    {{-- ============ SERVICES ============ --}}
+    <section class="section lp-section" id="services">
         <div class="container">
-            <div class="section-head reveal">
-                <h2>What you can book</h2>
-                <p>Everyday home services with the full price, 13% GST included, shown before you confirm.</p>
+            <div class="lp-head reveal">
+                <span class="lp-kicker">What you can book</span>
+                <h2>Everything your home needs, in one place.</h2>
+                <p>Pick a service, choose a time, and let a verified professional handle the rest. The full price — 13% GST included — is shown before you confirm.</p>
             </div>
-            <div class="cards">
-                <div class="card reveal" style="--d: 0ms">
-                    <div class="icon-chip"><i class="ph ph-broom"></i></div>
-                    <h3>Cleaning</h3>
-                    <p>Deep cleans, sofas, carpets and regular upkeep.</p>
-                </div>
-                <div class="card tinted reveal" style="--d: 60ms">
-                    <div class="icon-chip"><i class="ph ph-wrench"></i></div>
+
+            <div class="lp-services">
+                <a class="lp-card reveal" href="#download" style="--d: 0ms">
+                    <span class="lp-card__icon"><i class="ph ph-broom"></i></span>
+                    <h3>Home cleaning</h3>
+                    <p>Deep cleans, kitchens, bathrooms, sofa and carpet care.</p>
+                    <span class="lp-card__go">Book cleaning <i class="ph-bold ph-arrow-right"></i></span>
+                </a>
+
+                <a class="lp-card reveal" href="#download" style="--d: 60ms">
+                    <span class="lp-card__icon"><i class="ph ph-wrench"></i></span>
                     <h3>Plumbing</h3>
-                    <p>Leaks, taps, fittings and bathroom repairs.</p>
-                </div>
-                <div class="card reveal" style="--d: 120ms">
-                    <div class="icon-chip"><i class="ph ph-lightning"></i></div>
+                    <p>Leaks, taps, fittings, blocked drains and bathroom repairs.</p>
+                    <span class="lp-card__go">Book plumbing <i class="ph-bold ph-arrow-right"></i></span>
+                </a>
+
+                <a class="lp-card reveal" href="#download" style="--d: 120ms">
+                    <span class="lp-card__icon"><i class="ph ph-lightning"></i></span>
                     <h3>Electrical</h3>
-                    <p>Wiring, fans, lights, switches and appliances.</p>
-                </div>
-                <div class="card reveal" style="--d: 0ms">
-                    <div class="icon-chip"><i class="ph ph-hammer"></i></div>
-                    <h3>Carpentry</h3>
-                    <p>Doors, shelves, beds and custom woodwork.</p>
-                </div>
-                <div class="card reveal" style="--d: 60ms">
-                    <div class="icon-chip"><i class="ph ph-paint-brush"></i></div>
-                    <h3>Painting</h3>
-                    <p>Interior and exterior walls, finished clean.</p>
-                </div>
-                <div class="card tinted reveal" style="--d: 120ms">
-                    <div class="icon-chip"><i class="ph ph-plant"></i></div>
+                    <p>Wiring, fans, lights, switches and appliance fixes.</p>
+                    <span class="lp-card__go">Book electrical <i class="ph-bold ph-arrow-right"></i></span>
+                </a>
+
+                <a class="lp-card reveal" href="#download" style="--d: 0ms">
+                    <span class="lp-card__icon"><i class="ph ph-plant"></i></span>
                     <h3>Gardening</h3>
-                    <p>Lawns, hedges, trimming and yard care.</p>
-                </div>
-                <div class="card more reveal" style="--d: 0ms">
-                    <i class="ph ph-dots-three-outline" style="font-size: 1.5rem"></i>
-                    And more &mdash; search the app for anything else you need.
-                </div>
+                    <p>Lawns, hedges, pruning and everyday yard care.</p>
+                    <span class="lp-card__go">Book gardening <i class="ph-bold ph-arrow-right"></i></span>
+                </a>
+
+                <a class="lp-card reveal" href="#download" style="--d: 60ms">
+                    <span class="lp-card__icon"><i class="ph ph-sparkle"></i></span>
+                    <h3>Beauty &amp; wellness</h3>
+                    <p>Haircuts, styling, manicure and pedicure at home.</p>
+                    <span class="lp-card__go">Book beauty <i class="ph-bold ph-arrow-right"></i></span>
+                </a>
+
+                <a class="lp-card reveal" href="#download" style="--d: 120ms">
+                    <span class="lp-card__icon"><i class="ph ph-laptop"></i></span>
+                    <h3>Tech support</h3>
+                    <p>Computer repair and smart home setup by appointment.</p>
+                    <span class="lp-card__go">Book tech help <i class="ph-bold ph-arrow-right"></i></span>
+                </a>
             </div>
         </div>
     </section>
 
-    {{-- How it works --}}
-    <section class="section" id="how" style="padding-top: 0">
+    {{-- ============ HOW IT WORKS ============ --}}
+    <section class="section lp-section lp-section--tight" id="how">
         <div class="container">
-            <div class="section-head reveal">
-                <h2>How it works</h2>
-                <p>From pick to pay in four steps.</p>
+            <div class="lp-head reveal">
+                <span class="lp-kicker">How it works</span>
+                <h2>From &ldquo;I need this fixed&rdquo; to done.</h2>
+                <p>No phone calls, no haggling, no waiting around for a callback.</p>
             </div>
-            <div class="steps">
-                <div class="step reveal" style="--d: 0ms">
-                    <span class="num">1</span>
-                    <div>
-                        <h3>Pick a service</h3>
-                        <p>Browse categories or search for exactly what you need.</p>
-                    </div>
-                </div>
-                <div class="step reveal" style="--d: 60ms">
-                    <span class="num">2</span>
-                    <div>
-                        <h3>Choose a time</h3>
-                        <p>Select a date and a slot that works for you.</p>
-                    </div>
-                </div>
-                <div class="step reveal" style="--d: 120ms">
-                    <span class="num">3</span>
-                    <div>
-                        <h3>Pick your pro</h3>
-                        <p>See ratings and reviews, or let Urban assign the best available partner.</p>
-                    </div>
-                </div>
-                <div class="step reveal" style="--d: 180ms">
-                    <span class="num">4</span>
-                    <div>
-                        <h3>Track &amp; pay</h3>
-                        <p>Follow every step, then pay cash or online when the job is done.</p>
-                    </div>
-                </div>
-            </div>
+
+            <ol class="lp-how">
+                <li class="lp-step reveal" style="--d: 0ms">
+                    <span class="lp-step__num">1</span>
+                    <h3>Pick a service</h3>
+                    <p>Browse categories or search for exactly what you need.</p>
+                </li>
+                <li class="lp-step reveal" style="--d: 80ms">
+                    <span class="lp-step__num">2</span>
+                    <h3>Choose a time</h3>
+                    <p>Pick a slot that suits you and share your address.</p>
+                </li>
+                <li class="lp-step reveal" style="--d: 160ms">
+                    <span class="lp-step__num">3</span>
+                    <h3>Track &amp; pay</h3>
+                    <p>Follow the job live, then pay cash or online when it&rsquo;s done.</p>
+                </li>
+            </ol>
         </div>
     </section>
 
-    {{-- Why Urban: split with second mini-UI --}}
-    <section class="section why" id="why" style="padding-top: 0">
-        <div class="container">
+    {{-- ============ WHY HOMIFY ============ --}}
+    <section class="section lp-section lp-section--tight" id="why">
+        <div class="container lp-why">
             <div class="reveal">
-                <div class="section-head" style="margin-bottom: 0">
-                    <h2>Why people pick Urban</h2>
+                <div class="lp-head lp-head--left">
+                    <span class="lp-kicker">Why Homify</span>
+                    <h2>Trust, built into every booking.</h2>
                 </div>
-                <ul>
+
+                <ul class="lp-why__list">
                     <li>
-                        <i class="ph ph-seal-check"></i>
-                        <div><strong>Verified partners</strong><span>Every professional is KYC-verified and reviewed by real customers.</span></div>
+                        <span class="lp-why__icon"><i class="ph-bold ph-seal-check"></i></span>
+                        <div>
+                            <strong>Verified professionals</strong>
+                            <p>Every partner completes KYC checks and is reviewed by real customers.</p>
+                        </div>
                     </li>
                     <li>
-                        <i class="ph ph-currency-circle-dollar"></i>
-                        <div><strong>Pay after service</strong><span>No prepaid risk &mdash; cash at the door, or pay online afterwards.</span></div>
+                        <span class="lp-why__icon"><i class="ph-bold ph-currency-circle-dollar"></i></span>
+                        <div>
+                            <strong>Pay after the service</strong>
+                            <p>No prepaid risk — hand over cash at the door or pay online afterwards.</p>
+                        </div>
                     </li>
                     <li>
-                        <i class="ph ph-tag"></i>
-                        <div><strong>Transparent pricing</strong><span>See the full price with 13% GST before you book.</span></div>
+                        <span class="lp-why__icon"><i class="ph-bold ph-tag"></i></span>
+                        <div>
+                            <strong>The price you see is the price</strong>
+                            <p>Labour, platform fee and 13% GST, itemised before you confirm.</p>
+                        </div>
                     </li>
                     <li>
-                        <i class="ph ph-map-pin"></i>
-                        <div><strong>Live booking status</strong><span>Notified at every step, from confirmation to completion.</span></div>
+                        <span class="lp-why__icon"><i class="ph-bold ph-map-pin"></i></span>
+                        <div>
+                            <strong>Live status, and a chat</strong>
+                            <p>Know when your pro is on the way — and message them any time.</p>
+                        </div>
                     </li>
                 </ul>
             </div>
-            <div class="reveal" aria-hidden="true">
-                <div class="phone phone-float">
-                    <div class="app-top">
-                        <span class="app-title">Booking chat</span>
-                        <span>Live</span>
+
+            <div class="reveal" style="--d: 100ms">
+                <div class="lp-receipt">
+                    <div class="lp-receipt__head">
+                        <span class="lp-receipt__tag">Booking summary</span>
+                        <h3>Deep house cleaning</h3>
+                        <small>3 BHK · Saturday, 10:00 AM</small>
                     </div>
-                    <span class="status-chip"><i class="ph ph-broadcast"></i> Booking in progress</span>
-                    <div class="chat-card">
-                        <div class="bubble them">I&rsquo;m 10 minutes away.</div>
-                        <div class="bubble me">Great, the gate is open.</div>
-                        <div class="bubble-time">10:24</div>
+
+                    <div class="lp-receipt__rows">
+                        <div class="lp-receipt__row"><span>Service</span><strong>Rs. 4,500</strong></div>
+                        <div class="lp-receipt__row"><span>Platform fee</span><strong>Rs. 25</strong></div>
+                        <div class="lp-receipt__row"><span>GST (13%)</span><strong>Rs. 585</strong></div>
                     </div>
-                    <ul class="timeline" style="margin-top: 0.875rem">
-                        <li><span class="dot"><i class="ph-bold ph-check"></i></span> Confirmed &amp; paid after job</li>
-                        <li class="pending"><span class="dot"></span> Rate your partner when done</li>
-                    </ul>
-                    <div class="pay-row"><span>Support</span><strong>Chat anytime</strong></div>
+
+                    <div class="lp-receipt__total">
+                        <span>Total</span>
+                        <strong>Rs. 5,110</strong>
+                    </div>
+
+                    <div class="lp-receipt__foot">
+                        <i class="ph-bold ph-info"></i>
+                        Payable after the job is completed.
+                    </div>
                 </div>
             </div>
         </div>
     </section>
 
-    {{-- Referral band --}}
-    <section class="section" style="padding-top: 0">
+    {{-- ============ TESTIMONIALS ============ --}}
+    <section class="section lp-section lp-section--tight">
         <div class="container">
-            <div class="referral reveal">
+            <div class="lp-head reveal">
+                <span class="lp-kicker">Loved in the valley</span>
+                <h2>Real homes, real reviews.</h2>
+            </div>
+
+            <div class="lp-quotes">
+                <figure class="lp-quote reveal" style="--d: 0ms">
+                    <span class="lp-stars"><i class="ph-fill ph-star"></i><i class="ph-fill ph-star"></i><i class="ph-fill ph-star"></i><i class="ph-fill ph-star"></i><i class="ph-fill ph-star"></i></span>
+                    <blockquote>Booked a deep clean on Friday night and the team was at my door by ten the next morning. The price on the app was exactly what I paid.</blockquote>
+                    <figcaption class="lp-person">
+                        <span class="lp-avatar lp-avatar--alt">AK</span>
+                        <div><strong>Anisha K.</strong><small>Lalitpur · Deep cleaning</small></div>
+                    </figcaption>
+                </figure>
+
+                <figure class="lp-quote reveal" style="--d: 80ms">
+                    <span class="lp-stars"><i class="ph-fill ph-star"></i><i class="ph-fill ph-star"></i><i class="ph-fill ph-star"></i><i class="ph-fill ph-star"></i><i class="ph-fill ph-star"></i></span>
+                    <blockquote>Our kitchen tap had been leaking for weeks. A plumber came the same afternoon, fixed it, and I paid after he was done. That&rsquo;s how it should work.</blockquote>
+                    <figcaption class="lp-person">
+                        <span class="lp-avatar lp-avatar--alt">ST</span>
+                        <div><strong>Suman T.</strong><small>Kathmandu · Plumbing</small></div>
+                    </figcaption>
+                </figure>
+
+                <figure class="lp-quote reveal" style="--d: 160ms">
+                    <span class="lp-stars"><i class="ph-fill ph-star"></i><i class="ph-fill ph-star"></i><i class="ph-fill ph-star"></i><i class="ph-fill ph-star"></i><i class="ph-fill ph-star"></i></span>
+                    <blockquote>The live status is what won me over. I could see exactly when the electrician was on the way instead of guessing all afternoon.</blockquote>
+                    <figcaption class="lp-person">
+                        <span class="lp-avatar lp-avatar--alt">PG</span>
+                        <div><strong>Priya G.</strong><small>Bhaktapur · Electrical</small></div>
+                    </figcaption>
+                </figure>
+            </div>
+        </div>
+    </section>
+
+    {{-- ============ FIRST BOOKING OFFER ============ --}}
+    <section class="section lp-section lp-section--tight">
+        <div class="container">
+            <div class="lp-promo reveal">
                 <div>
-                    <h2>New here? 25% off your first booking.</h2>
-                    <p>Use this code at checkout in the app &mdash; 25% off, up to Rs. 500, on your first order.</p>
+                    <span class="lp-kicker lp-kicker--light">New here?</span>
+                    <h2>25% off your first booking.</h2>
+                    <p>Apply the code at checkout in the app — 25% off, up to Rs. 500, on your first order.</p>
                 </div>
-                <div class="code-chip" aria-label="Promo code WELCOME25">
+                <div class="lp-promo__code" aria-label="Promo code WELCOME25">
                     WELCOME25
                     <small>first booking only</small>
                 </div>
@@ -268,32 +387,68 @@
         </div>
     </section>
 
-    {{-- Partners --}}
-    <section class="section" id="partners" style="padding-top: 0">
+    {{-- ============ PARTNERS ============ --}}
+    <section class="section lp-section lp-section--tight" id="partners">
         <div class="container">
-            <div class="partners reveal">
-                <div>
-                    <h2>Earn on your schedule</h2>
-                    <p>Accept jobs that fit your route, track earnings in real time, and withdraw to your bank or mobile wallet. Training, documents and payouts &mdash; all in one partner app.</p>
+            <div class="lp-partner reveal">
+                <div class="lp-partner__copy">
+                    <span class="lp-kicker lp-kicker--light">For professionals</span>
+                    <h2>Earn on your schedule.</h2>
+                    <p>Accept jobs that fit your route, keep track of every rupee, and withdraw to your bank or mobile wallet. Applications, documents and payouts live in one partner app.</p>
+
+                    <ul class="lp-partner__list">
+                        <li><i class="ph-bold ph-check"></i> Weekly payouts, no chasing</li>
+                        <li><i class="ph-bold ph-check"></i> Jobs near your route</li>
+                        <li><i class="ph-bold ph-check"></i> Free onboarding &amp; training</li>
+                    </ul>
+
+                    <a class="btn lp-btn-light" href="mailto:support@homify.com.np?subject=Partner%20application">
+                        Apply as a partner
+                        <i class="ph-bold ph-arrow-right" aria-hidden="true"></i>
+                    </a>
                 </div>
-                <a class="btn btn-primary" href="mailto:support@urban.com.np?subject=Partner%20application">Apply as a partner</a>
+
+                <div class="lp-partner__panel" aria-hidden="true">
+                    <div class="lp-earn">
+                        <span class="lp-earn__label">This week</span>
+                        <strong class="lp-earn__amount">Rs. 18,640</strong>
+                        <span class="lp-earn__trend"><i class="ph-bold ph-trend-up"></i> 12% vs last week</span>
+
+                        <div class="lp-bars">
+                            <span style="--h: 42%"></span>
+                            <span style="--h: 61%"></span>
+                            <span style="--h: 38%"></span>
+                            <span style="--h: 78%"></span>
+                            <span style="--h: 56%"></span>
+                            <span style="--h: 92%"></span>
+                            <span style="--h: 70%"></span>
+                        </div>
+
+                        <div class="lp-earn__foot">
+                            <span>7 jobs completed</span>
+                            <span class="lp-earn__pill">Payout on Friday</span>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </section>
 
-    {{-- FAQ --}}
-    <section class="section" id="faq" style="padding-top: 0">
+    {{-- ============ FAQ ============ --}}
+    <section class="section lp-section lp-section--tight" id="faq">
         <div class="container">
-            <div class="section-head reveal">
-                <h2>Questions, answered</h2>
+            <div class="lp-head reveal">
+                <span class="lp-kicker">Questions</span>
+                <h2>Good to know, before you book.</h2>
             </div>
-            <div class="faq-list">
+
+            <div class="lp-faq">
                 <details class="reveal" style="--d: 0ms">
                     <summary>Do I have to pay in advance?</summary>
-                    <p>No. Pay after the service is done &mdash; cash at the door, or online with eSewa, Khalti or ConnectIPS.</p>
+                    <p>No. Pay after the service is done — cash at the door, or online with eSewa or Khalti.</p>
                 </details>
                 <details class="reveal" style="--d: 40ms">
-                    <summary>Are the partners verified?</summary>
+                    <summary>Are the professionals verified?</summary>
                     <p>Yes. Every partner is KYC-verified, and you can read honest reviews from other customers before you book.</p>
                 </details>
                 <details class="reveal" style="--d: 80ms">
@@ -302,30 +457,44 @@
                 </details>
                 <details class="reveal" style="--d: 120ms">
                     <summary>Can I track my booking?</summary>
-                    <p>Yes. You get live status at every step &mdash; confirmation, partner assigned, on the way, and job done.</p>
+                    <p>Yes. You get live status at every step — confirmation, partner assigned, on the way, and job done.</p>
                 </details>
                 <details class="reveal" style="--d: 160ms">
-                    <summary>Which cities does Urban cover?</summary>
-                    <p>Urban is rolling out across Nepal. Enter your address in the app to check availability in your area.</p>
+                    <summary>Which cities does Homify cover?</summary>
+                    <p>Homify is rolling out across Nepal. Enter your address in the app to check availability in your area.</p>
                 </details>
             </div>
         </div>
     </section>
 
-    {{-- Download --}}
-    <section class="section download" id="download" style="padding-top: 0">
+    {{-- ============ DOWNLOAD ============ --}}
+    <section class="section lp-section" id="download" style="padding-top: 0">
         <div class="container">
-            <div class="section-head reveal">
-                <h2>Get Urban</h2>
-                <p>Free to download. Book your first service in under a minute.</p>
+            <div class="lp-download reveal">
+                <div class="lp-download__copy">
+                    <span class="lp-kicker">Get started</span>
+                    <h2>Book your first service in under a minute.</h2>
+                    <p>Download Homify, pick a service and choose a time. Pay only when the job is done.</p>
+
+                    <div class="lp-download__row">
+                        <a class="play-badge" href="https://play.google.com/store/apps/details?id=com.nupirk.urban" rel="noopener">
+                            <img src="https://cdn.simpleicons.org/googleplay/FFFFFF" alt="" width="26" height="26">
+                            <span class="lines"><small>GET IT ON</small><strong>Google Play</strong></span>
+                        </a>
+                        <span class="lp-note">iOS coming soon</span>
+                    </div>
+                </div>
+
+                <div class="lp-download__art" aria-hidden="true">
+                    <span class="lp-glow lp-glow--soft"></span>
+                    <div class="lp-tile lp-tile--1"><i class="ph ph-broom"></i><strong>Cleaning</strong><small>from Rs. 1,500</small></div>
+                    <div class="lp-tile lp-tile--2"><i class="ph ph-wrench"></i><strong>Plumbing</strong><small>from Rs. 800</small></div>
+                    <div class="lp-tile lp-tile--3"><i class="ph ph-lightning"></i><strong>Electrical</strong><small>from Rs. 900</small></div>
+                    <div class="lp-tile lp-tile--4"><i class="ph ph-plant"></i><strong>Gardening</strong><small>from Rs. 700</small></div>
+                </div>
             </div>
-            <div class="store-row reveal">
-                <a class="play-badge" href="https://play.google.com/store/apps/details?id=com.nupirk.urban" rel="noopener">
-                    <img src="https://cdn.simpleicons.org/googleplay/FFFFFF" alt="" width="26" height="26">
-                    <span class="lines"><small>GET IT ON</small><strong>Google Play</strong></span>
-                </a>
-            </div>
-            <p class="ios-note">iOS app coming soon to the App Store.</p>
         </div>
     </section>
+
+</div>
 @endsection

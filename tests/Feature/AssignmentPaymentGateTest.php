@@ -40,7 +40,7 @@ class AssignmentPaymentGateTest extends TestCase
             'user_id' => 1,
             'first_name' => 'Platform',
             'last_name' => 'System',
-            'email' => 'platform@urban.local',
+            'email' => 'platform@homify.local',
             'phone' => '9800000001',
             'password' => bcrypt('secret'),
             'user_type' => 'admin',

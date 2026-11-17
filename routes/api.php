@@ -204,7 +204,7 @@ Route::prefix('v1')->group(function () {
         Route::post('referral/apply', [\App\Http\Controllers\Api\V1\ReferralController::class, 'apply'])
             ->middleware('throttle:10,1');
 
-        // Membership (Urban Plus)
+        // Membership (Homify Plus)
         Route::get('membership', [MembershipController::class, 'index']);
         Route::post('membership/purchase', [MembershipController::class, 'purchase'])
             ->middleware('throttle:payments');

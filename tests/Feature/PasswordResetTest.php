@@ -40,7 +40,7 @@ class PasswordResetTest extends TestCase
         $this->user = User::create([
             'first_name' => 'Reset',
             'last_name' => 'Customer',
-            'email' => 'reset.customer@urban.test',
+            'email' => 'reset.customer@homify.test',
             'phone' => self::PHONE,
             'password' => Hash::make(self::OLD_PASSWORD),
             'user_type' => 'customer',

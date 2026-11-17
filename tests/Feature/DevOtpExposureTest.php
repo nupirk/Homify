@@ -23,7 +23,7 @@ class DevOtpExposureTest extends TestCase
         return $this->postJson('/api/v1/register', [
             'first_name' => 'Otp',
             'last_name' => 'Probe',
-            'email' => "otp.probe{$seed}@urban.test",
+            'email' => "otp.probe{$seed}@homify.test",
             'phone' => '98100000' . str_pad((string) $seed, 2, '0', STR_PAD_LEFT),
             'password' => 'secretPassword123',
             'password_confirmation' => 'secretPassword123',

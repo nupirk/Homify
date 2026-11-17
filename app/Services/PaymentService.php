@@ -51,7 +51,7 @@ class PaymentService
                 'customer_name' => $order->user->first_name . ' ' . $order->user->last_name,
                 'customer_email' => $order->user->email,
                 'customer_phone' => $order->user->phone,
-                'product_name' => 'Urban Service - ' . $order->items->first()?->service->name,
+                'product_name' => 'Homify Service - ' . $order->items->first()?->service->name,
             ]));
 
             if (!$result['success']) {

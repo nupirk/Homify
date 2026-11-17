@@ -1,4 +1,4 @@
-{{-- filepath: c:\Users\kchnp\Desktop\Urban\be\resources\views\admin\earnings\balances.blade.php --}}
+{{-- filepath: c:\Users\kchnp\Desktop\Homify\be\resources\views\admin\earnings\balances.blade.php --}}
 @extends('layouts.app')
 
 @section('title', 'Partner Balances')

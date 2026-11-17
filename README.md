@@ -1,6 +1,6 @@
-# Urban API — production backend
+# Homify API — production backend
 
-Laravel 12 REST API and admin panel for the Urban home-services platform.
+Laravel 12 REST API and admin panel for the Homify home-services platform.
 PostgreSQL is required: the schema uses native `ENUM` types and `jsonb`.
 
 This folder is the deployable cut of the backend: application code, migrations,

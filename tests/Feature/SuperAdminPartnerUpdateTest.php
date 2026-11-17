@@ -36,7 +36,7 @@ class SuperAdminPartnerUpdateTest extends TestCase
             'user_id' => 1,
             'first_name' => 'Platform',
             'last_name' => 'Admin',
-            'email' => 'platform@urban.local',
+            'email' => 'platform@homify.local',
             'phone' => '9800000001',
             'password' => bcrypt('secret'),
             'user_type' => 'admin',
@@ -48,7 +48,7 @@ class SuperAdminPartnerUpdateTest extends TestCase
 
         $this->partner = User::create([
             'first_name' => 'Old', 'last_name' => 'Name',
-            'email' => 'old@urban.local',
+            'email' => 'old@homify.local',
             'phone' => '9811111111',
             'password' => bcrypt('password'),
             'user_type' => 'partner',
@@ -143,7 +143,7 @@ class SuperAdminPartnerUpdateTest extends TestCase
     {
         $other = User::create([
             'first_name' => 'Other', 'last_name' => 'User',
-            'email' => 'taken@urban.local',
+            'email' => 'taken@homify.local',
             'phone' => '9822222222',
             'password' => bcrypt('password'),
             'user_type' => 'customer',

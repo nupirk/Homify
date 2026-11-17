@@ -17,10 +17,10 @@ class KhaltiGateway extends PaymentGateway
             'website_url' => config('app.url'),
             'amount' => (int)($payment->amount * 100), // Convert to paisa
             'purchase_order_id' => $orderId,
-            'purchase_order_name' => $options['product_name'] ?? 'Urban Service Booking',
+            'purchase_order_name' => $options['product_name'] ?? 'Homify Service Booking',
             'customer_info' => [
                 'name' => $options['customer_name'] ?? 'Customer',
-                'email' => $options['customer_email'] ?? 'customer@urban.com',
+                'email' => $options['customer_email'] ?? 'customer@homify.com.np',
                 'phone' => $options['customer_phone'] ?? '9800000000',
             ],
         ];

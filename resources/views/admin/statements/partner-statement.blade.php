@@ -275,7 +275,7 @@
 <body>
     <!-- Header -->
     <div class="header">
-        <h1 class="company-name">Urban Services Platform</h1>
+        <h1 class="company-name">Homify Services Platform</h1>
         <h2 class="document-title">Partner Financial Statement</h2>
         <p class="statement-period">
             Period: {{ $data['period']['from']->format('F j, Y') }} - {{ $data['period']['to']->format('F j, Y') }}
@@ -525,7 +525,7 @@
     <div class="footer">
         <p>This statement is generated automatically and contains all transactions for the specified period.</p>
         <p>For any discrepancies or questions, please contact our finance team.</p>
-        <p><strong>Urban Services Platform</strong> | Statement generated on {{ now()->format('F j, Y \a\t g:i A') }}
+        <p><strong>Homify Services Platform</strong> | Statement generated on {{ now()->format('F j, Y \a\t g:i A') }}
         </p>
     </div>
 </body>

@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Campaigns - Urban Admin')
+@section('title', 'Campaigns - Homify Admin')
 
 @section('content')
     @php

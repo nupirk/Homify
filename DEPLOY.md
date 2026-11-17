@@ -1,8 +1,8 @@
-# Deploying Urban API on a VPS (Ubuntu 24.04)
+# Deploying Homify API on a VPS (Ubuntu 24.04)
 
 End-to-end walkthrough for a fresh Ubuntu 24.04 server with nginx, PHP-FPM,
 PostgreSQL, a queue worker and the scheduler. Substitute your own domain and
-paths; the examples use `api.example.com` and `/var/www/urban-api`.
+paths; the examples use `api.example.com` and `/var/www/homify-api`.
 
 ## 0. What you need
 
@@ -34,9 +34,9 @@ sudo chmod +x /usr/local/bin/composer
 
 ```bash
 sudo -u postgres psql <<'SQL'
-CREATE USER urban WITH PASSWORD 'change-this-strong-password';
-CREATE DATABASE urban OWNER urban;
-ALTER DATABASE urban SET timezone TO 'Asia/Kathmandu';
+CREATE USER homify WITH PASSWORD 'change-this-strong-password';
+CREATE DATABASE homify OWNER homify;
+ALTER DATABASE homify SET timezone TO 'Asia/Kathmandu';
 SQL
 ```
 
@@ -46,10 +46,10 @@ supported. PostgreSQL 14+ is fine.
 ## 3. Code, environment, first migration
 
 ```bash
-sudo mkdir -p /var/www/urban-api
-sudo chown -R "$USER":www-data /var/www/urban-api
-git clone <YOUR_REPO_URL> /var/www/urban-api
-cd /var/www/urban-api
+sudo mkdir -p /var/www/homify-api
+sudo chown -R "$USER":www-data /var/www/homify-api
+git clone <YOUR_REPO_URL> /var/www/homify-api
+cd /var/www/homify-api
 
 composer install --no-dev --prefer-dist --optimize-autoloader
 
@@ -66,7 +66,7 @@ Now edit `.env`:
 | `APP_URL` | `https://api.example.com` — gateway callbacks are built from this |
 | `APP_PUBLIC_URL` | `https://example.com` (marketing site / OG base) |
 | `TRUSTED_PROXIES` | `127.0.0.1` (nginx is local; never `*` in production) |
-| `DB_*` | the `urban` database above |
+| `DB_*` | the `homify` database above |
 | `EXPOSE_DEV_OTP` | `false` (must stay false) |
 | `ADMIN_*` | real admin email / phone; leave `ADMIN_PASSWORD` empty to generate |
 | `MAIL_*` | SMTP credentials — `log` silently drops password resets and OTPs |
@@ -112,9 +112,9 @@ is enough for env changes, but the others are cheap).
 ## 5. nginx + PHP-FPM
 
 ```bash
-sudo cp deploy/nginx.conf /etc/nginx/sites-available/urban-api
-sudo sed -i 's/api.example.com/YOUR_DOMAIN/g' /etc/nginx/sites-available/urban-api
-sudo ln -s /etc/nginx/sites-available/urban-api /etc/nginx/sites-enabled/
+sudo cp deploy/nginx.conf /etc/nginx/sites-available/homify-api
+sudo sed -i 's/api.example.com/YOUR_DOMAIN/g' /etc/nginx/sites-available/homify-api
+sudo ln -s /etc/nginx/sites-available/homify-api /etc/nginx/sites-enabled/
 sudo rm -f /etc/nginx/sites-enabled/default
 sudo nginx -t && sudo systemctl reload nginx
 ```
@@ -144,14 +144,14 @@ Payments, notifications and pushes are queued (`QUEUE_CONNECTION=database`),
 including OTP mail. Without a worker those jobs pile up silently.
 
 ```bash
-sudo cp deploy/urban-queue.service /etc/systemd/system/
+sudo cp deploy/homify-queue.service /etc/systemd/system/
 sudo systemctl daemon-reload
-sudo systemctl enable --now urban-queue
-sudo systemctl status urban-queue --no-pager
-sudo journalctl -u urban-queue -f     # watch it process jobs
+sudo systemctl enable --now homify-queue
+sudo systemctl status homify-queue --no-pager
+sudo journalctl -u homify-queue -f     # watch it process jobs
 ```
 
-After changing code, restart it: `sudo systemctl restart urban-queue`.
+After changing code, restart it: `sudo systemctl restart homify-queue`.
 
 ## 7. Scheduler (cron)
 
@@ -165,7 +165,7 @@ sudo crontab -u www-data -e
 Add:
 
 ```cron
-* * * * * cd /var/www/urban-api && /usr/bin/php artisan schedule:run >> /dev/null 2>&1
+* * * * * cd /var/www/homify-api && /usr/bin/php artisan schedule:run >> /dev/null 2>&1
 ```
 
 `db:backup` shells out to `pg_dump`; install `postgresql-client` (already

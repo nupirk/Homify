@@ -5,14 +5,14 @@
 #   sudo -u www-data bash deploy/deploy.sh
 #
 # Environment overrides:
-#   APP_DIR=/var/www/urban-api
+#   APP_DIR=/var/www/homify-api
 #   BRANCH=main
 #   PHP_BIN=php8.3
 #   SEED=1          # also run ProductionSeeder (idempotent; first install only)
 
 set -euo pipefail
 
-APP_DIR="${APP_DIR:-/var/www/urban-api}"
+APP_DIR="${APP_DIR:-/var/www/homify-api}"
 BRANCH="${BRANCH:-main}"
 PHP_BIN="${PHP_BIN:-php}"
 
@@ -44,7 +44,7 @@ echo "==> Rebuilding caches"
 "$PHP_BIN" artisan event:cache
 
 echo "==> Restarting services"
-sudo systemctl restart urban-queue
+sudo systemctl restart homify-queue
 sudo systemctl reload php8.3-fpm
 
 echo "==> Health check"

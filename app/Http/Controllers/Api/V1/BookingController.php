@@ -368,7 +368,7 @@ class BookingController extends Controller
                 }
             }
 
-            // Urban Plus membership: percent off the remaining base after
+            // Homify Plus membership: percent off the remaining base after
             // any promo, capped by the plan perk. Ships inside
             // discount_amount so tax, gateway payloads and settlement math
             // stay exactly as before; membership_discount records the share.

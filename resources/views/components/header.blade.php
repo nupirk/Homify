@@ -49,7 +49,7 @@
                 <div id="user-menu"
                     class="hidden absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-sm border border-slate-200 z-50 py-1.5 overflow-hidden">
                     <div class="px-4 py-2 text-xs text-slate-500 border-b border-slate-100 mb-1">
-                        Signed in as <span class="font-medium text-slate-700">{{ Auth::user()->email ?? 'admin@urbanserve.com' }}</span>
+                        Signed in as <span class="font-medium text-slate-700">{{ Auth::user()->email ?? 'admin@homify.com.np' }}</span>
                     </div>
                     <a href="#"
                         class="flex items-center px-4 py-2 text-sm text-slate-600 hover:bg-indigo-50 hover:text-indigo-700 transition-colors duration-150">

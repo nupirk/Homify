@@ -1,10 +1,10 @@
 /**
- * UrbanServe Admin - Global JavaScript Utilities
+ * HomifyServe Admin - Global JavaScript Utilities
  * Provides common functions used across components
  */
 
 // Global utility functions
-window.UrbanAdmin = {
+window.HomifyAdmin = {
     // CSRF Token
     getCsrfToken() {
         return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
@@ -118,5 +118,5 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Export for use in modules
 if (typeof module !== 'undefined' && module.exports) {
-    module.exports = UrbanAdmin;
+    module.exports = HomifyAdmin;
 }

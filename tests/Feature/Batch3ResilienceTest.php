@@ -48,7 +48,7 @@ class Batch3ResilienceTest extends TestCase
             'user_id' => 1,
             'first_name' => 'Platform',
             'last_name' => 'System',
-            'email' => 'platform@urban.local',
+            'email' => 'platform@homify.local',
             'phone' => '9800000001',
             'password' => bcrypt('secret'),
             'user_type' => 'admin',
@@ -162,11 +162,11 @@ class Batch3ResilienceTest extends TestCase
         $this->withServerVariables(['REMOTE_ADDR' => '10.10.10.2']);
 
         for ($i = 0; $i < 5; $i++) {
-            $response = $this->post('/admin/login', ['email' => 'nobody@urban.test', 'password' => 'wrong']);
+            $response = $this->post('/admin/login', ['email' => 'nobody@homify.test', 'password' => 'wrong']);
             $this->assertNotSame(429, $response->getStatusCode(), "Attempt {$i} should not be throttled yet");
         }
 
-        $this->post('/admin/login', ['email' => 'nobody@urban.test', 'password' => 'wrong'])
+        $this->post('/admin/login', ['email' => 'nobody@homify.test', 'password' => 'wrong'])
             ->assertStatus(429);
     }
 
@@ -242,7 +242,7 @@ class Batch3ResilienceTest extends TestCase
 
     public function test_backup_command_fails_cleanly_without_a_dumper(): void
     {
-        $directory = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'urban-backup-test-' . uniqid();
+        $directory = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'homify-backup-test-' . uniqid();
         config(['app.pg_dump_binary' => 'definitely-not-a-real-pg-dump-binary']);
 
         $this->artisan('db:backup', ['--path' => $directory])->assertExitCode(1);

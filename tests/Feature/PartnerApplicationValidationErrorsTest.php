@@ -32,7 +32,7 @@ class PartnerApplicationValidationErrorsTest extends TestCase
         return array_merge([
             'first_name' => 'Vali',
             'last_name' => 'Dation',
-            'email' => 'validation-' . uniqid() . '@urban.local',
+            'email' => 'validation-' . uniqid() . '@homify.local',
             'phone' => '9844' . random_int(100000, 999999),
             'password' => 'password123',
             'password_confirmation' => 'password123',

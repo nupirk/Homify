@@ -35,7 +35,7 @@ use Tests\TestCase;
  *   6. partner completes the job: ledger, notifications, referral reward
  *   7. shopper confirms the cash handover: earnings + payout balance
  *   8. second booking paid online through the eSewa webhook + auto-dispatch
- *   9. Urban Plus membership purchased through the signed gateway webhook,
+ *   9. Homify Plus membership purchased through the signed gateway webhook,
  *      then a member-priced booking
  */
 class EndToEndJourneyTest extends TestCase
@@ -60,7 +60,7 @@ class EndToEndJourneyTest extends TestCase
             'user_id' => 1,
             'first_name' => 'Platform',
             'last_name' => 'System',
-            'email' => 'platform@urban.local',
+            'email' => 'platform@homify.local',
             'phone' => '9800000001',
             'password' => bcrypt('secret'),
             'user_type' => 'admin',
@@ -611,7 +611,7 @@ class EndToEndJourneyTest extends TestCase
         $this->assertEqualsWithDelta(1200.0, (float) $earning->amount, 0.01);
 
         // ------------------------------------------------------------------
-        // Step 9: Urban Plus through the signed gateway webhook, then a
+        // Step 9: Homify Plus through the signed gateway webhook, then a
         // member-priced booking
         // ------------------------------------------------------------------
         Sanctum::actingAs($shopper, ['*']);

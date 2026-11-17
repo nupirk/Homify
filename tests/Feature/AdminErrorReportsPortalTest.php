@@ -29,7 +29,7 @@ class AdminErrorReportsPortalTest extends TestCase
             'user_id' => 1,
             'first_name' => 'Platform',
             'last_name' => 'Admin',
-            'email' => 'platform@urban.local',
+            'email' => 'platform@homify.local',
             'phone' => '9800000001',
             'password' => bcrypt('secret'),
             'user_type' => 'admin',

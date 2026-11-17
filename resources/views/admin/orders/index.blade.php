@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Order Management - UrbanServe Admin')
+@section('title', 'Order Management - HomifyServe Admin')
 
 @section('content')
     <div class="space-y-6 max-w-full overflow-x-hidden">

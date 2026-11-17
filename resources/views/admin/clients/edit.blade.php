@@ -1,4 +1,4 @@
-{{-- filepath: c:\Users\kchnp\Desktop\Urban\be\resources\views\admin\clients\edit.blade.php --}}
+{{-- filepath: c:\Users\kchnp\Desktop\Homify\be\resources\views\admin\clients\edit.blade.php --}}
 @extends('layouts.app')
 
 @section('title', 'Edit Client')

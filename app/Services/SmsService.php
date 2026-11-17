@@ -16,7 +16,7 @@ class SmsService
     {
         $this->gateway = config('services.sms.gateway', 'sparrow'); // sparrow, twilio, log
         $this->token = config('services.sms.token');
-        $this->from = config('services.sms.from', 'Urban');
+        $this->from = config('services.sms.from', 'Homify');
     }
 
     /**
@@ -49,7 +49,7 @@ class SmsService
      */
     public function sendOtp(string $phone, string $otp): bool
     {
-        $message = "Your Urban verification code is: {$otp}. Valid for 10 minutes. Do not share this code.";
+        $message = "Your Homify verification code is: {$otp}. Valid for 10 minutes. Do not share this code.";
         return $this->send($phone, $message);
     }
 

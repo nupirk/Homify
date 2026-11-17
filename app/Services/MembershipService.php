@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 /**
- * Urban Plus membership: purchase flow, entitlement lookup and the
+ * Homify Plus membership: purchase flow, entitlement lookup and the
  * checkout discount.
  *
  * Money rule (mirrors PromoService): the member percentage applies to the

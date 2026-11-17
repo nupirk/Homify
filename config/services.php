@@ -38,7 +38,7 @@ return [
     'sms' => [
         'gateway' => env('SMS_GATEWAY', 'log'), // sparrow, twilio, log
         'token' => env('SMS_TOKEN'),
-        'from' => env('SMS_FROM', 'Urban'),
+        'from' => env('SMS_FROM', 'Homify'),
 
         // Sparrow SMS (Nepal)
         'sparrow_token' => env('SPARROW_SMS_TOKEN'),

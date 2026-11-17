@@ -1,14 +1,14 @@
-# /etc/systemd/system/urban-queue.service
+# /etc/systemd/system/homify-queue.service
 #
 #   sudo systemctl daemon-reload
-#   sudo systemctl enable --now urban-queue
-#   sudo journalctl -u urban-queue -f
+#   sudo systemctl enable --now homify-queue
+#   sudo journalctl -u homify-queue -f
 #
 # --max-time recycles the worker hourly so long-lived PHP processes cannot leak;
 # systemd restarts it because Restart=always.
 
 [Unit]
-Description=Urban API queue worker
+Description=Homify API queue worker
 After=network.target postgresql.service
 
 [Service]
@@ -17,9 +17,9 @@ User=www-data
 Group=www-data
 Restart=always
 RestartSec=5
-WorkingDirectory=/var/www/urban-api
+WorkingDirectory=/var/www/homify-api
 
-ExecStart=/usr/bin/php /var/www/urban-api/artisan queue:work \
+ExecStart=/usr/bin/php /var/www/homify-api/artisan queue:work \
     --sleep=3 \
     --tries=3 \
     --timeout=90 \

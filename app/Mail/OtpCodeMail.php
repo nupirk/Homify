@@ -27,7 +27,7 @@ class OtpCodeMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Your Urban verification code',
+            subject: 'Your Homify verification code',
         );
     }
 

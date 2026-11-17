@@ -23,7 +23,7 @@ class EmailOtpTest extends TestCase
 {
     use CreatesApplication, RefreshDatabase;
 
-    private const EMAIL = 'email.otp@urban.test';
+    private const EMAIL = 'email.otp@homify.test';
 
     protected function setUp(): void
     {
@@ -131,7 +131,7 @@ class EmailOtpTest extends TestCase
     {
         $response = $this->postJson('/api/v1/otp/send', [
             'channel' => 'email',
-            'email' => 'nobody.here@urban.test',
+            'email' => 'nobody.here@homify.test',
             'type' => 'password_reset',
         ]);
 
@@ -142,7 +142,7 @@ class EmailOtpTest extends TestCase
             array_keys($response->json('data'))
         );
 
-        $this->assertNull(OtpVerification::where('email', 'nobody.here@urban.test')->first());
+        $this->assertNull(OtpVerification::where('email', 'nobody.here@homify.test')->first());
         Mail::assertNothingSent();
     }
 

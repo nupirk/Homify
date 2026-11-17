@@ -65,7 +65,7 @@ return [
     |
     */
 
-    'public_url' => env('APP_PUBLIC_URL', 'https://urban.com.np'),
+    'public_url' => env('APP_PUBLIC_URL', 'https://homify.com.np'),
 
     /*
     |--------------------------------------------------------------------------

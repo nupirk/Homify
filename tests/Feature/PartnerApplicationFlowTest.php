@@ -31,7 +31,7 @@ class PartnerApplicationFlowTest extends TestCase
             'user_id' => 1,
             'first_name' => 'Platform',
             'last_name' => 'Admin',
-            'email' => 'platform@urban.local',
+            'email' => 'platform@homify.local',
             'phone' => '9800000001',
             'password' => bcrypt('secret'),
             'user_type' => 'admin',
@@ -43,7 +43,7 @@ class PartnerApplicationFlowTest extends TestCase
 
         $this->customer = User::create([
             'first_name' => 'App', 'last_name' => 'Llicant',
-            'email' => 'applicant@urban.local',
+            'email' => 'applicant@homify.local',
             'phone' => '9833333333',
             'password' => bcrypt('password'),
             'user_type' => 'customer',

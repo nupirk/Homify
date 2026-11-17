@@ -123,7 +123,7 @@
 
 <body>
     <div class="header">
-        <div class="company-name">Urban Company</div>
+        <div class="company-name">Homify Company</div>
         <div class="statement-title">Earnings Statement</div>
         @if (isset($date_from) || isset($date_to))
             <div class="date-range">
@@ -202,7 +202,7 @@
     </table>
 
     <div class="footer">
-        <p>This statement was generated automatically by Urban Company's earnings management system.</p>
+        <p>This statement was generated automatically by Homify Company's earnings management system.</p>
         <p>For any discrepancies or questions, please contact the finance department.</p>
     </div>
 </body>

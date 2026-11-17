@@ -245,7 +245,7 @@ class SimulateLedgerFlow extends Command
                 'user_id' => $platformId,
                 'first_name' => 'Platform',
                 'last_name' => 'Sim',
-                'email' => 'platform-sim' . uniqid() . '@urban.local',
+                'email' => 'platform-sim' . uniqid() . '@homify.local',
                 'phone' => '9800' . random_int(100000, 999999),
                 'password' => bcrypt('secret'),
                 'user_type' => 'admin',
@@ -255,7 +255,7 @@ class SimulateLedgerFlow extends Command
 
         $customer = User::create([
             'first_name' => 'Sim', 'last_name' => 'Customer',
-            'email' => 'sim-cust-' . uniqid() . '@urban.local',
+            'email' => 'sim-cust-' . uniqid() . '@homify.local',
             'phone' => '981' . random_int(1000000, 9999999),
             'password' => bcrypt('secret'),
             'user_type' => 'customer', 'is_active' => true,
@@ -263,7 +263,7 @@ class SimulateLedgerFlow extends Command
 
         $partner = User::create([
             'first_name' => 'Sim', 'last_name' => 'Partner',
-            'email' => 'sim-part-' . uniqid() . '@urban.local',
+            'email' => 'sim-part-' . uniqid() . '@homify.local',
             'phone' => '982' . random_int(1000000, 9999999),
             'password' => bcrypt('secret'),
             'user_type' => 'partner', 'is_active' => true,
