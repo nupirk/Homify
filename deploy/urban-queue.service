@@ -1,0 +1,30 @@
+# /etc/systemd/system/urban-queue.service
+#
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now urban-queue
+#   sudo journalctl -u urban-queue -f
+#
+# --max-time recycles the worker hourly so long-lived PHP processes cannot leak;
+# systemd restarts it because Restart=always.
+
+[Unit]
+Description=Urban API queue worker
+After=network.target postgresql.service
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+Restart=always
+RestartSec=5
+WorkingDirectory=/var/www/urban-api
+
+ExecStart=/usr/bin/php /var/www/urban-api/artisan queue:work \
+    --sleep=3 \
+    --tries=3 \
+    --timeout=90 \
+    --max-time=3600 \
+    --max-jobs=1000
+
+[Install]
+WantedBy=multi-user.target
