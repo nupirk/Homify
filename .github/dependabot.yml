@@ -1,0 +1,28 @@
+version: 2
+
+updates:
+  # Composer packages (Laravel, Symfony, gateways, etc.).
+  - package-ecosystem: composer
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Asia/Kathmandu
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(deps)"
+    labels:
+      - dependencies
+    groups:
+      # All security fixes in one PR, so a CVE never waits behind routine bumps.
+      security:
+        applies-to: security-updates
+        patterns:
+          - "*"
+      # Routine minor/patch updates batched; majors stay separate.
+      minor-and-patch:
+        applies-to: version-updates
+        update-types:
+          - minor
+          - patch

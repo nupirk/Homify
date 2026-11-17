@@ -138,8 +138,20 @@ package and its fixed version, a test failure prints the assertion. Reproduce
 locally with `composer audit` / `php artisan test` after
 `cp .env.testing.example .env.testing` and pointing `DB_*` at a scratch database.
 
-Dependabot is not configured; when `composer audit` starts failing, bump the
-flagged packages with `composer update <package> --with-all-dependencies`.
+Dependabot (`.github/dependabot.yml`) opens grouped Composer PRs weekly; security
+updates and Dependabot alerts are switched on for the repository, so a CVE in
+`composer.lock` produces a PR instead of a red build. Those PRs must still pass
+the workflow before merging.
+
+> **Known issue (17 Nov 2026): the first runs never started.** Every run on this
+> repository — the CI workflow, a 10-line control workflow, and Dependabot's own
+> run — ends in `startup_failure` with zero jobs, so nothing in the workflow file
+> is at fault (a manual `workflow_dispatch` is parsed correctly and still fails
+> before a runner is assigned). This is a repository/account-level gate for a
+> private repo, almost always Actions billing: open **Settings → Billing → Plans
+> and usage → Actions** and the banner on the failed run page, which names the
+> exact reason. Publishing the repository makes Actions minutes unlimited and
+> removes this class of failure entirely.
 
 ## 8. Before you call it live
 
