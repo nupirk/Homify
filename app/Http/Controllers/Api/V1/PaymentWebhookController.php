@@ -182,12 +182,12 @@ class PaymentWebhookController extends Controller
 
         if ($result['success']) {
             // Redirect to cart screen with success
-            return redirect()->away('fe://cart?payment_status=success&order_id=' . $result['order']->order_id);
+            return redirect()->away('homify://cart?payment_status=success&order_id=' . $result['order']->order_id);
         }
 
         // Redirect to cart screen with failure
         $errorMessage = urlencode($result['error']);
-        return redirect()->away('fe://cart?payment_status=failed&error=' . $errorMessage);
+        return redirect()->away('homify://cart?payment_status=failed&error=' . $errorMessage);
     }
 
     /**
@@ -368,7 +368,7 @@ class PaymentWebhookController extends Controller
                     'calculated_signature' => $sig,
                     'message' => $message
                 ]);
-                return redirect()->away('fe://cart?payment_status=failed&error=' . urlencode('Invalid signature'));
+                return redirect()->away('homify://cart?payment_status=failed&error=' . urlencode('Invalid signature'));
             }
 
             Log::info('eSewa signature verified successfully');
@@ -378,14 +378,14 @@ class PaymentWebhookController extends Controller
 
             if ($result['success']) {
                 // Redirect to app cart screen with success
-                return redirect()->away('fe://cart?payment_status=success&order_id=' . $result['order']->order_id);
+                return redirect()->away('homify://cart?payment_status=success&order_id=' . $result['order']->order_id);
             }
 
             // Redirect to app cart screen with failure
-            return redirect()->away('fe://cart?payment_status=failed&error=' . urlencode($result['error']));
+            return redirect()->away('homify://cart?payment_status=failed&error=' . urlencode($result['error']));
         } catch (\Exception $e) {
             Log::error('eSewa success callback failed', ['error' => $e->getMessage()]);
-            return redirect()->away('fe://cart?payment_status=failed&error=' . urlencode('Payment processing failed'));
+            return redirect()->away('homify://cart?payment_status=failed&error=' . urlencode('Payment processing failed'));
         }
     }
 
@@ -408,10 +408,10 @@ class PaymentWebhookController extends Controller
                 $this->handlePaymentFailure($request->transaction_uuid, 'Payment cancelled by user');
             }
 
-            return redirect()->away('fe://cart?payment_status=failed&error=' . urlencode('Payment cancelled or failed'));
+            return redirect()->away('homify://cart?payment_status=failed&error=' . urlencode('Payment cancelled or failed'));
         } catch (\Exception $e) {
             Log::error('eSewa failure callback processing failed', ['error' => $e->getMessage()]);
-            return redirect()->away('fe://cart?payment_status=failed&error=' . urlencode('Payment processing failed'));
+            return redirect()->away('homify://cart?payment_status=failed&error=' . urlencode('Payment processing failed'));
         }
     }
 
@@ -423,7 +423,7 @@ class PaymentWebhookController extends Controller
     public function membershipEsewaSuccess(Request $request): \Illuminate\Http\RedirectResponse
     {
         $redirect = fn (string $status, string $error = '') => redirect()->away(
-            'fe://profile/membership?payment_status=' . $status
+            'homify://profile/membership?payment_status=' . $status
             . ($error !== '' ? '&error=' . urlencode($error) : '')
         );
 
@@ -474,10 +474,10 @@ class PaymentWebhookController extends Controller
                 MembershipService::markFailed((string) $request->transaction_uuid);
             }
 
-            return redirect()->away('fe://profile/membership?payment_status=failed&error=' . urlencode('Payment cancelled or failed'));
+            return redirect()->away('homify://profile/membership?payment_status=failed&error=' . urlencode('Payment cancelled or failed'));
         } catch (\Exception $e) {
             Log::error('eSewa membership failure callback failed', ['error' => $e->getMessage()]);
-            return redirect()->away('fe://profile/membership?payment_status=failed&error=' . urlencode('Payment processing failed'));
+            return redirect()->away('homify://profile/membership?payment_status=failed&error=' . urlencode('Payment processing failed'));
         }
     }
 

@@ -220,7 +220,7 @@ class MembershipTest extends TestCase
 
         $this->get($this->successUrl($membership->txn_id, '299.00'))
             ->assertStatus(302)
-            ->assertRedirect('fe://profile/membership?payment_status=success');
+            ->assertRedirect('homify://profile/membership?payment_status=success');
 
         $membership->refresh();
         $this->assertSame('active', $membership->status);
@@ -236,7 +236,7 @@ class MembershipTest extends TestCase
 
         $this->get($this->successUrl($membership->txn_id, '299.00'))
             ->assertStatus(302)
-            ->assertRedirect('fe://profile/membership?payment_status=success');
+            ->assertRedirect('homify://profile/membership?payment_status=success');
 
         $membership->refresh();
         $this->assertSame('active', $membership->status);
