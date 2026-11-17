@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Database\Migrations\Migration;
+use App\Support\SchemaCompat;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -19,11 +20,11 @@ return new class extends Migration
 {
     public function up(): void
     {
-        DB::statement('ALTER TABLE ledger_entries DROP CONSTRAINT IF EXISTS ledger_entries_amount_check');
+        SchemaCompat::statement('ALTER TABLE ledger_entries DROP CONSTRAINT IF EXISTS ledger_entries_amount_check');
     }
 
     public function down(): void
     {
-        DB::statement('ALTER TABLE ledger_entries ADD CONSTRAINT ledger_entries_amount_check CHECK (amount >= 0)');
+        SchemaCompat::statement('ALTER TABLE ledger_entries ADD CONSTRAINT ledger_entries_amount_check CHECK (amount >= 0)');
     }
 };

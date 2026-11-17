@@ -29,6 +29,10 @@ Homestead.json
 Homestead.yaml
 npm-debug.log
 yarn-error.log
+/database/*.sqlite
+/database/*.sqlite-journal
+/database/*.sqlite-wal
+/database/*.sqlite-shm
 /.fleet
 /.idea
 /.nova

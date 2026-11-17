@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Database\Migrations\Migration;
+use App\Support\SchemaCompat;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\DB;
@@ -25,8 +26,14 @@ return new class extends Migration
             $table->decimal('total_amount', 10, 2);
             $table->decimal('final_payable', 10, 2)->nullable();
             $table->enum('payment_status', ['pending', 'paid', 'failed', 'refunded'])->default('pending');
-            $table->enum('payment_method', ['online', 'cod'])->default('online')
-                ->comment('Payment method: online (prepaid) or cod (cash on delivery)');
+            // A later migration adds 'pas' to this column. PostgreSQL gets it by
+            // altering the type; SQLite cannot drop the generated CHECK, so there
+            // it stays a plain string the application validates.
+            SchemaCompat::isPostgres()
+                ? $table->enum('payment_method', ['online', 'cod'])->default('online')
+                    ->comment('Payment method: online (prepaid) or cod (cash on delivery)')
+                : $table->string('payment_method', 20)->default('online')
+                    ->comment('Payment method: online (prepaid) or cod (cash on delivery)');
             $table->boolean('commission_deducted')->default(false)
                 ->comment('Whether commission has been deducted from partner for COD orders');
             $table->timestamp('commission_deducted_at')->nullable()
@@ -39,7 +46,7 @@ return new class extends Migration
         });
 
         // Add status enum column
-        DB::statement("ALTER TABLE orders ADD COLUMN status order_status_enum DEFAULT 'created'");
+        SchemaCompat::statement("ALTER TABLE orders ADD COLUMN status order_status_enum DEFAULT 'created'");
 
         Schema::create('order_items', function (Blueprint $table) {
             $table->id('item_id');
@@ -97,7 +104,7 @@ return new class extends Migration
         });
 
         // Add status enum column
-        DB::statement("ALTER TABLE service_requests ADD COLUMN status service_request_status_enum DEFAULT 'pending'");
+        SchemaCompat::statement("ALTER TABLE service_requests ADD COLUMN status service_request_status_enum DEFAULT 'pending'");
     }
 
     public function down()

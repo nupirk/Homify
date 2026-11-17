@@ -1,8 +1,9 @@
 # Deploying Homify API on a VPS (Ubuntu 24.04)
 
 End-to-end walkthrough for a fresh Ubuntu 24.04 server with nginx, PHP-FPM,
-PostgreSQL, a queue worker and the scheduler. Substitute your own domain and
-paths; the examples use `api.example.com` and `/var/www/homify-api`.
+a database (SQLite by default, PostgreSQL optional), a queue worker and the
+scheduler. Substitute your own domain and paths; the examples use
+`api.example.com` and `/var/www/homify-api`.
 
 ## 0. What you need
 
@@ -17,9 +18,12 @@ paths; the examples use `api.example.com` and `/var/www/homify-api`.
 
 ```bash
 sudo apt update && sudo apt upgrade -y
-sudo apt install -y nginx postgresql postgresql-contrib git unzip curl \
-  php8.3-fpm php8.3-cli php8.3-pgsql php8.3-mbstring php8.3-xml \
+sudo apt install -y nginx git unzip curl \
+  php8.3-fpm php8.3-cli php8.3-sqlite3 php8.3-mbstring php8.3-xml \
   php8.3-curl php8.3-zip php8.3-bcmath php8.3-gd php8.3-intl
+
+# Only if you choose PostgreSQL below (also install php8.3-pgsql):
+# sudo apt install -y postgresql postgresql-contrib php8.3-pgsql
 
 # Composer
 curl -sS https://getcomposer.org/installer | php
@@ -30,7 +34,22 @@ sudo chmod +x /usr/local/bin/composer
 # (resources/css, resources/js); the API itself does not need it.
 ```
 
-## 2. PostgreSQL
+## 2. Database
+
+**SQLite (default, no server to run):**
+
+```bash
+cd /var/www/homify-api
+touch database/database.sqlite
+chown www-data:www-data database/database.sqlite
+chmod 660 database/database.sqlite
+```
+
+Leave `DB_CONNECTION=sqlite` in `.env` and `DB_DATABASE` unset. The file must
+stay writable by `www-data`, and it is the entire database — back it up (see
+§7) and never `git clean` it.
+
+**PostgreSQL (optional, for more than one writer / bigger loads):**
 
 ```bash
 sudo -u postgres psql <<'SQL'
@@ -40,8 +59,9 @@ ALTER DATABASE homify SET timezone TO 'Asia/Kathmandu';
 SQL
 ```
 
-The schema uses PostgreSQL `ENUM` types and `jsonb`, so MySQL/SQLite are not
-supported. PostgreSQL 14+ is fine.
+Then set `DB_CONNECTION=pgsql` plus the `DB_*` block in `.env`. The migrations
+branch per driver: native `ENUM` types and `jsonb` on PostgreSQL, plain text and
+CHECK-free columns on SQLite, with the same tables, indexes and defaults.
 
 ## 3. Code, environment, first migration
 
@@ -168,10 +188,11 @@ Add:
 * * * * * cd /var/www/homify-api && /usr/bin/php artisan schedule:run >> /dev/null 2>&1
 ```
 
-`db:backup` shells out to `pg_dump`; install `postgresql-client` (already
-pulled in by `postgresql`) or set `PG_DUMP_BINARY` to its absolute path.
-Backups land on the server — copy them off the box (S3, another host) so a
-lost VPS does not take the data with it.
+`db:backup` handles both drivers: on SQLite it writes a consistent snapshot with
+`VACUUM INTO` (`storage/backups/*.sqlite`), on PostgreSQL it shells out to
+`pg_dump` — install `postgresql-client` (pulled in by `postgresql`) or set
+`PG_DUMP_BINARY` to its absolute path. Backups land on the server — copy them
+off the box (S3, another host) so a lost VPS does not take the data with it.
 
 ## 8. Gateway webhooks
 

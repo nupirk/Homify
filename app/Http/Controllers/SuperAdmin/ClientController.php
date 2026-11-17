@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\SuperAdmin;
 
 use App\Http\Controllers\Controller;
+use App\Support\SchemaCompat;
 use Illuminate\Http\Request;
 use App\Models\User;
 use App\Models\Booking;
@@ -45,8 +46,8 @@ class ClientController extends Controller
             $searchTerm = '%' . $request->search . '%';
             $query->where(function ($q) use ($searchTerm) {
                 $q->whereRaw("CONCAT(first_name, ' ', last_name) ILIKE ?", [$searchTerm])
-                    ->orWhere('email', 'ILIKE', $searchTerm)
-                    ->orWhere('phone', 'ILIKE', $searchTerm);
+                    ->orWhere('email', SchemaCompat::likeOperator(), $searchTerm)
+                    ->orWhere('phone', SchemaCompat::likeOperator(), $searchTerm);
             });
         }
 

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\SuperAdmin;
 
 use App\Http\Controllers\Controller;
+use App\Support\SchemaCompat;
 use Illuminate\Http\Request;
 use App\Models\User;
 use App\Models\Service;
@@ -47,10 +48,10 @@ class PartnerController extends Controller
         if ($request->filled('search')) {
             $searchTerm = '%' . $request->search . '%';
             $query->where(function ($q) use ($searchTerm) {
-                $q->where('first_name', 'ILIKE', $searchTerm)
-                    ->orWhere('last_name', 'ILIKE', $searchTerm)
-                    ->orWhere('email', 'ILIKE', $searchTerm)
-                    ->orWhere('phone', 'ILIKE', $searchTerm)
+                $q->where('first_name', SchemaCompat::likeOperator(), $searchTerm)
+                    ->orWhere('last_name', SchemaCompat::likeOperator(), $searchTerm)
+                    ->orWhere('email', SchemaCompat::likeOperator(), $searchTerm)
+                    ->orWhere('phone', SchemaCompat::likeOperator(), $searchTerm)
                     ->orWhereRaw("CONCAT(first_name, ' ', last_name) ILIKE ?", [$searchTerm]);
             });
         }

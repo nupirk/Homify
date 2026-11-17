@@ -42,9 +42,7 @@ class SuperAdminPartnerUpdateTest extends TestCase
             'user_type' => 'admin',
             'is_active' => true,
         ]));
-        \Illuminate\Support\Facades\DB::statement(
-            "SELECT setval('users_user_id_seq', GREATEST((SELECT COALESCE(MAX(user_id), 1) FROM users), 1))"
-        );
+        $this->syncUserIdSequence();
 
         $this->partner = User::create([
             'first_name' => 'Old', 'last_name' => 'Name',

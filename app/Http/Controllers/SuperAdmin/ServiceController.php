@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\SuperAdmin;
 
 use App\Http\Controllers\Controller;
+use App\Support\SchemaCompat;
 use Illuminate\Http\Request;
 use App\Models\Service;
 use App\Models\ServicePricing;
@@ -36,7 +37,7 @@ class ServiceController extends Controller
 
         // Search by name
         if ($request->filled('search')) {
-            $query->where('name', 'ILIKE', '%' . $request->search . '%');
+            $query->where('name', SchemaCompat::likeOperator(), '%' . $request->search . '%');
         }
 
         // Sort options

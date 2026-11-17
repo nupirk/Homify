@@ -23,7 +23,7 @@ class PartnerAvailability extends Model
     ];
 
     protected $casts = [
-        'service_date' => 'date',
+        'service_date' => 'date:Y-m-d',
         'start_time' => 'datetime:H:i',
         'end_time' => 'datetime:H:i',
         'slot_length_min' => 'integer',

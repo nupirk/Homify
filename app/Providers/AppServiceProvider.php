@@ -4,17 +4,57 @@ namespace App\Providers;
 
 use App\Models\User;
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Database\Events\ConnectionEstablished;
 use Illuminate\Http\Middleware\TrustProxies;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
+use PDO;
 
 class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        //
+        // SQLite has no CONCAT() or DATE_TRUNC(). Reporting queries written for
+        // PostgreSQL use both, so they are registered as plain SQLite functions
+        // on every connection rather than rewritten driver by driver. Registered
+        // here, not in boot(), because a connection can be opened while other
+        // providers are still booting.
+        Event::listen(ConnectionEstablished::class, function (ConnectionEstablished $event) {
+            $connection = $event->connection;
+
+            if ($connection->getDriverName() !== 'sqlite') {
+                return;
+            }
+
+            $pdo = $connection->getPdo();
+
+            if (! $pdo instanceof PDO) {
+                return;
+            }
+
+            $pdo->sqliteCreateFunction('concat', static function (...$parts) {
+                return implode('', array_map(static fn ($part) => (string) ($part ?? ''), $parts));
+            }, -1);
+
+            $pdo->sqliteCreateFunction('date_trunc', static function ($part, $value) {
+                if ($value === null) {
+                    return null;
+                }
+
+                $timestamp = strtotime((string) $value) ?: 0;
+
+                return match (strtolower((string) $part)) {
+                    'year' => date('Y-01-01 00:00:00', $timestamp),
+                    'month' => date('Y-m-01 00:00:00', $timestamp),
+                    'day' => date('Y-m-d 00:00:00', $timestamp),
+                    'hour' => date('Y-m-d H:00:00', $timestamp),
+                    default => date('Y-m-d H:i:s', $timestamp),
+                };
+            }, 2);
+        });
     }
 
     public function boot(): void
@@ -70,5 +110,6 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('chat', function (Request $request) {
             return Limit::perMinute(30)->by($request->user()?->getAuthIdentifier() ?: $request->ip());
         });
+
     }
 }

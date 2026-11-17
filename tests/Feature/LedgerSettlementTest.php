@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use App\Support\SchemaCompat;
 use Illuminate\Support\Facades\Http;
 use Laravel\Sanctum\Sanctum;
 use Tests\CreatesApplication;
@@ -51,9 +52,7 @@ class LedgerSettlementTest extends TestCase
             'user_type' => 'admin',
             'is_active' => true,
         ]));
-        \Illuminate\Support\Facades\DB::statement(
-            "SELECT setval('users_user_id_seq', GREATEST((SELECT COALESCE(MAX(user_id), 1) FROM users), 1))"
-        );
+        $this->syncUserIdSequence();
 
         $this->customer = User::create([
             'first_name' => 'Test', 'last_name' => 'Customer',
@@ -230,7 +229,7 @@ class LedgerSettlementTest extends TestCase
         // Every platform-side entry is reversed with dispute_reversal metadata.
         $reversals = LedgerEntry::where('booking_id', $order->order_id)
             ->whereIn('type', ['ESCROW_CREDIT', 'PLATFORM_FEE', 'TAX_PAYABLE'])
-            ->whereRaw("(metadata->>'dispute_reversal') = 'true'")
+            ->whereRaw(SchemaCompat::jsonFlagExpression('metadata', 'dispute_reversal') . " = 'true'")
             ->get();
         $this->assertSame(3, $reversals->count());
         foreach ($reversals as $reversal) {

@@ -23,6 +23,10 @@ class StatusEnumAlignmentTest extends TestCase
     /** @return string[] */
     private function enumValues(string $type): array
     {
+        if (DB::connection()->getDriverName() !== 'pgsql') {
+            $this->markTestSkipped('Native enum types are PostgreSQL-only; SQLite stores these statuses as text.');
+        }
+
         return array_map(
             fn ($row) => $row->v,
             DB::select("select unnest(enum_range(NULL::{$type})) as v")

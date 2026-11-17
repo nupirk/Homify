@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Models\LedgerEntry;
+use App\Support\SchemaCompat;
 use App\Models\Order;
 use App\Services\LedgerService;
 use Illuminate\Console\Command;
@@ -44,7 +45,7 @@ class BackfillPASCashCompletions extends Command
                     ->from('ledger_entries')
                     ->whereColumn('ledger_entries.booking_id', 'orders.order_id')
                     ->where('ledger_entries.type', 'PAS_RECEIPT')
-                    ->whereRaw("(ledger_entries.metadata->>'dispute_reversal') IS DISTINCT FROM 'true'");
+                    ->whereRaw(SchemaCompat::jsonFlagExpression('ledger_entries.metadata', 'dispute_reversal') . " IS DISTINCT FROM 'true'");
             });
 
         if ($partnerFilter) {

@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Database\Migrations\Migration;
+use App\Support\SchemaCompat;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -19,19 +20,24 @@ return new class extends Migration
 {
     public function up(): void
     {
-        DB::statement('ALTER TABLE ledger_entries DROP CONSTRAINT IF EXISTS ledger_booking_user_type_unique');
-        DB::statement(
-            "CREATE UNIQUE INDEX ledger_booking_user_type_nonreversal_uniq
-             ON ledger_entries (booking_id, user_id, type)
-             WHERE (metadata->>'dispute_reversal') IS DISTINCT FROM 'true'"
+        SchemaCompat::dropUnique('ledger_entries', 'ledger_booking_user_type_unique');
+        SchemaCompat::statement(
+            'CREATE UNIQUE INDEX ledger_booking_user_type_nonreversal_uniq'
+            . ' ON ledger_entries (booking_id, user_id, type)'
+            . ' WHERE ' . SchemaCompat::jsonFlagExpression('metadata', 'dispute_reversal')
+            . " IS DISTINCT FROM 'true'"
         );
     }
 
     public function down(): void
     {
-        DB::statement('DROP INDEX IF EXISTS ledger_booking_user_type_nonreversal_uniq');
-        DB::statement(
-            'ALTER TABLE ledger_entries ADD CONSTRAINT ledger_booking_user_type_unique UNIQUE (booking_id, user_id, type)'
-        );
+        SchemaCompat::statement('DROP INDEX IF EXISTS ledger_booking_user_type_nonreversal_uniq');
+        SchemaCompat::isPostgres()
+            ? SchemaCompat::statement(
+                'ALTER TABLE ledger_entries ADD CONSTRAINT ledger_booking_user_type_unique UNIQUE (booking_id, user_id, type)'
+            )
+            : SchemaCompat::statement(
+                'CREATE UNIQUE INDEX ledger_booking_user_type_unique ON ledger_entries (booking_id, user_id, type)'
+            );
     }
 };

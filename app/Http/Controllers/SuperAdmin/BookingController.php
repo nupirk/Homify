@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\SuperAdmin;
 
 use App\Http\Controllers\Controller;
+use App\Support\SchemaCompat;
 use Illuminate\Http\Request;
 use App\Models\Booking;
 use App\Models\User;
@@ -41,7 +42,7 @@ class BookingController extends Controller
         // Search by customer name
         if ($request->filled('search')) {
             $query->whereHas('customer', function ($q) use ($request) {
-                $q->where('name', 'ILIKE', '%' . $request->search . '%');
+                $q->where('name', SchemaCompat::likeOperator(), '%' . $request->search . '%');
             });
         }
 

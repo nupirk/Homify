@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\SuperAdmin;
 
 use App\Http\Controllers\Controller;
+use App\Support\SchemaCompat;
 use App\Models\LedgerEntry;
 use App\Models\User;
 use App\Models\Order;
@@ -53,7 +54,7 @@ class LedgerController extends Controller
 
         // Search by narration
         if ($request->filled('search')) {
-            $query->where('narration', 'ILIKE', '%' . $request->search . '%');
+            $query->where('narration', SchemaCompat::likeOperator(), '%' . $request->search . '%');
         }
 
         // Order by latest first

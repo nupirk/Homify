@@ -48,9 +48,7 @@ class PaymentWebhookKhaltiTest extends TestCase
             'is_active' => true,
         ]));
 
-        \Illuminate\Support\Facades\DB::statement(
-            "SELECT setval('users_user_id_seq', GREATEST((SELECT COALESCE(MAX(user_id), 1) FROM users), 1))"
-        );
+        $this->syncUserIdSequence();
 
         $this->customer = User::create([
             'first_name' => 'Test',

@@ -1,7 +1,8 @@
 # Homify API — production backend
 
 Laravel 12 REST API and admin panel for the Homify home-services platform.
-PostgreSQL is required: the schema uses native `ENUM` types and `jsonb`.
+Runs on SQLite (default — one file, nothing to install) or PostgreSQL 14+.
+The migrations, seeders and test suite work on both.
 
 This folder is the deployable cut of the backend: application code, migrations,
 production seeders and deployment files only. No `.env`, no `vendor/`, no
@@ -13,7 +14,7 @@ uploaded media, no dev scratch scripts.
 | --- | --- |
 | PHP | 8.2+ (8.3 recommended) |
 | Laravel | 12 |
-| Database | PostgreSQL 14+ |
+| Database | SQLite, or PostgreSQL 14+ |
 | Auth | Sanctum bearer tokens (API), session auth (admin panel) |
 | Queue / cache / sessions | database driver (no Redis needed) |
 | Payments | Khalti, eSewa (+ optional Stripe) |
@@ -25,17 +26,22 @@ composer install
 cp .env.example .env
 php artisan key:generate
 
-# point DB_* at a local PostgreSQL database, then
+# SQLite (the .env.example default): create the database file once
+mkdir -p database && touch database/database.sqlite
+
 php artisan migrate --seed
 php artisan serve          # API on http://localhost:8000
 ```
+
+For PostgreSQL, uncomment the `DB_*` block in `.env`, create the database, and
+run the same `migrate --seed`.
 
 Health check: `GET /up`. API base: `/api/v1`. Admin panel: `/admin`.
 
 ## Tests
 
-The suite runs against PostgreSQL and uses `RefreshDatabase`, so point it at a
-disposable database — everything in it is wiped.
+The suite uses `RefreshDatabase`, so point it at a disposable database —
+everything in it is wiped. It passes on SQLite and on PostgreSQL.
 
 ```bash
 cp .env.testing.example .env.testing   # set DB_* to a throwaway database

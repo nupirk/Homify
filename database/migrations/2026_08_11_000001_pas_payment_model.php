@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Database\Migrations\Migration;
+use App\Support\SchemaCompat;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -34,19 +35,19 @@ return new class extends Migration
         array $newValues,
         array $mapping
     ): void {
-        DB::statement("ALTER TABLE {$table} DROP CONSTRAINT IF EXISTS {$checkName}");
-        DB::statement("ALTER TABLE {$table} ALTER COLUMN {$column} DROP DEFAULT");
-        DB::statement("ALTER TABLE {$table} ALTER COLUMN {$column} TYPE TEXT USING {$column}::text");
+        SchemaCompat::statement("ALTER TABLE {$table} DROP CONSTRAINT IF EXISTS {$checkName}");
+        SchemaCompat::statement("ALTER TABLE {$table} ALTER COLUMN {$column} DROP DEFAULT");
+        SchemaCompat::statement("ALTER TABLE {$table} ALTER COLUMN {$column} TYPE TEXT USING {$column}::text");
 
         foreach ($mapping as $old => $new) {
             DB::table($table)->where($column, $old)->update([$column => $new]);
         }
 
-        DB::statement("DROP TYPE IF EXISTS {$typeName}");
+        SchemaCompat::statement("DROP TYPE IF EXISTS {$typeName}");
         $enumVals = collect($newValues)->map(fn ($v) => "'{$v}'")->implode(', ');
-        DB::statement("CREATE TYPE {$typeName} AS ENUM ({$enumVals})");
-        DB::statement("ALTER TABLE {$table} ALTER COLUMN {$column} TYPE {$typeName} USING {$column}::{$typeName}");
-        DB::statement("ALTER TABLE {$table} ALTER COLUMN {$column} SET DEFAULT '{$newValues[0]}'");
+        SchemaCompat::statement("CREATE TYPE {$typeName} AS ENUM ({$enumVals})");
+        SchemaCompat::statement("ALTER TABLE {$table} ALTER COLUMN {$column} TYPE {$typeName} USING {$column}::{$typeName}");
+        SchemaCompat::statement("ALTER TABLE {$table} ALTER COLUMN {$column} SET DEFAULT '{$newValues[0]}'");
     }
 
     public function up(): void
@@ -61,15 +62,15 @@ return new class extends Migration
             ['cod' => 'pas']
         );
 
-        DB::statement("COMMENT ON COLUMN orders.payment_method IS 'Payment method: online (prepaid) or pas (pay after service - settled online via QR or in cash after the work is done)'");
+        SchemaCompat::statement("COMMENT ON COLUMN orders.payment_method IS 'Payment method: online (prepaid) or pas (pay after service - settled online via QR or in cash after the work is done)'");
 
         // 2. New PAS settlement columns on orders
-        DB::statement("DO \$\$ BEGIN CREATE TYPE payment_received AS ENUM ('online', 'cash'); EXCEPTION WHEN duplicate_object THEN NULL; END \$\$;");
-        DB::statement('ALTER TABLE orders ADD COLUMN payment_received payment_received NULL');
-        DB::statement('ALTER TABLE orders ADD COLUMN cash_confirmed BOOLEAN NOT NULL DEFAULT FALSE');
-        DB::statement('ALTER TABLE orders ADD COLUMN cash_confirmed_at TIMESTAMP NULL');
-        DB::statement('ALTER TABLE orders ADD COLUMN cash_disputed BOOLEAN NOT NULL DEFAULT FALSE');
-        DB::statement('ALTER TABLE orders ADD COLUMN cash_disputed_at TIMESTAMP NULL');
+        SchemaCompat::statement("DO \$\$ BEGIN CREATE TYPE payment_received AS ENUM ('online', 'cash'); EXCEPTION WHEN duplicate_object THEN NULL; END \$\$;");
+        SchemaCompat::statement('ALTER TABLE orders ADD COLUMN payment_received payment_received NULL');
+        SchemaCompat::statement('ALTER TABLE orders ADD COLUMN cash_confirmed BOOLEAN NOT NULL DEFAULT FALSE');
+        SchemaCompat::statement('ALTER TABLE orders ADD COLUMN cash_confirmed_at TIMESTAMP NULL');
+        SchemaCompat::statement('ALTER TABLE orders ADD COLUMN cash_disputed BOOLEAN NOT NULL DEFAULT FALSE');
+        SchemaCompat::statement('ALTER TABLE orders ADD COLUMN cash_disputed_at TIMESTAMP NULL');
 
         // 3. ledger_entries.type: COD_* -> PAS_*
         $newTypes = [
@@ -104,22 +105,22 @@ return new class extends Migration
 
         // Rebuild the check constraint with the renamed types
         $checkVals = collect($newTypes)->map(fn ($v) => "'{$v}'::text")->implode(', ');
-        DB::statement("ALTER TABLE ledger_entries ADD CONSTRAINT ledger_entries_type_check CHECK ((type)::text = ANY (ARRAY[{$checkVals}]))");
+        SchemaCompat::statement("ALTER TABLE ledger_entries ADD CONSTRAINT ledger_entries_type_check CHECK ((type)::text = ANY (ARRAY[{$checkVals}]))");
 
         // 4. Update legacy comments referencing COD
-        DB::statement("COMMENT ON COLUMN orders.commission_deducted IS 'Whether platform commission has been deducted from partner for PAS cash-settled orders'");
-        DB::statement("COMMENT ON COLUMN orders.commission_deducted_at IS 'When commission was deducted for PAS cash-settled orders'");
+        SchemaCompat::statement("COMMENT ON COLUMN orders.commission_deducted IS 'Whether platform commission has been deducted from partner for PAS cash-settled orders'");
+        SchemaCompat::statement("COMMENT ON COLUMN orders.commission_deducted_at IS 'When commission was deducted for PAS cash-settled orders'");
     }
 
     public function down(): void
     {
         // 1. Drop new settlement columns
-        DB::statement('ALTER TABLE orders DROP COLUMN IF EXISTS cash_disputed_at');
-        DB::statement('ALTER TABLE orders DROP COLUMN IF EXISTS cash_disputed');
-        DB::statement('ALTER TABLE orders DROP COLUMN IF EXISTS cash_confirmed_at');
-        DB::statement('ALTER TABLE orders DROP COLUMN IF EXISTS cash_confirmed');
-        DB::statement('ALTER TABLE orders DROP COLUMN IF EXISTS payment_received');
-        DB::statement("DO \$\$ BEGIN IF EXISTS (SELECT 1 FROM pg_type WHERE typname = 'payment_received' AND typtype = 'e') THEN DROP TYPE payment_received; END IF; END \$\$;");
+        SchemaCompat::statement('ALTER TABLE orders DROP COLUMN IF EXISTS cash_disputed_at');
+        SchemaCompat::statement('ALTER TABLE orders DROP COLUMN IF EXISTS cash_disputed');
+        SchemaCompat::statement('ALTER TABLE orders DROP COLUMN IF EXISTS cash_confirmed_at');
+        SchemaCompat::statement('ALTER TABLE orders DROP COLUMN IF EXISTS cash_confirmed');
+        SchemaCompat::statement('ALTER TABLE orders DROP COLUMN IF EXISTS payment_received');
+        SchemaCompat::statement("DO \$\$ BEGIN IF EXISTS (SELECT 1 FROM pg_type WHERE typname = 'payment_received' AND typtype = 'e') THEN DROP TYPE payment_received; END IF; END \$\$;");
 
         // 2. ledger_entries.type: PAS_* -> COD_*
         $oldTypes = [
@@ -153,7 +154,7 @@ return new class extends Migration
         );
 
         $checkVals = collect($oldTypes)->map(fn ($v) => "'{$v}'::text")->implode(', ');
-        DB::statement("ALTER TABLE ledger_entries ADD CONSTRAINT ledger_entries_type_check CHECK ((type)::text = ANY (ARRAY[{$checkVals}]))");
+        SchemaCompat::statement("ALTER TABLE ledger_entries ADD CONSTRAINT ledger_entries_type_check CHECK ((type)::text = ANY (ARRAY[{$checkVals}]))");
 
         // 3. orders.payment_method: 'pas' -> 'cod'
         $this->replaceEnumValues(
@@ -165,6 +166,6 @@ return new class extends Migration
             ['pas' => 'cod']
         );
 
-        DB::statement("COMMENT ON COLUMN orders.payment_method IS 'Payment method: online (prepaid) or cod (cash on delivery)'");
+        SchemaCompat::statement("COMMENT ON COLUMN orders.payment_method IS 'Payment method: online (prepaid) or cod (cash on delivery)'");
     }
 };

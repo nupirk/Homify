@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\SuperAdmin;
 
 use App\Http\Controllers\Controller;
+use App\Support\SchemaCompat;
 use Illuminate\Http\Request;
 use App\Models\LedgerEntry;
 use App\Models\PartnerBalance;
@@ -50,7 +51,7 @@ class EarningController extends Controller
         // Search by partner name
         if ($request->filled('search')) {
             $query->whereHas('user', function ($q) use ($request) {
-                $q->where('name', 'ILIKE', '%' . $request->search . '%');
+                $q->where('name', SchemaCompat::likeOperator(), '%' . $request->search . '%');
             });
         }
 
@@ -275,7 +276,7 @@ class EarningController extends Controller
 
         if ($request->filled('search')) {
             $query->whereHas('partner.user', function ($q) use ($request) {
-                $q->where('name', 'ILIKE', '%' . $request->search . '%');
+                $q->where('name', SchemaCompat::likeOperator(), '%' . $request->search . '%');
             });
         }
 

@@ -10,7 +10,7 @@ Status of each area at a glance:
 | Area | State | What is missing |
 | --- | --- | --- |
 | Backend (API + admin) | Ready | A server and real credentials |
-| Database schema + seed | Ready, verified | Nothing |
+| Database schema + seed | Ready on SQLite and PostgreSQL | Nothing |
 | CI (audit + tests) | Ready | Nothing — runs on every push to `main` |
 | Payments | Sandbox code ready | Live Khalti / eSewa merchant keys |
 | Email (OTP, password reset) | Code ready | SMTP credentials |

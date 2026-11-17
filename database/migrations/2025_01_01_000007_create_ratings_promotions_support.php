@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Database\Migrations\Migration;
+use App\Support\SchemaCompat;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\DB;
@@ -46,7 +47,7 @@ return new class extends Migration
         });
 
         // Add promo_type enum column
-        DB::statement("ALTER TABLE promotions ADD COLUMN promo_type promo_type_enum DEFAULT 'percentage'");
+        SchemaCompat::statement("ALTER TABLE promotions ADD COLUMN promo_type promo_type_enum DEFAULT 'percentage'");
 
         // User-specific promotions (for targeted marketing)
         Schema::create('user_promotions', function (Blueprint $table) {
@@ -76,7 +77,7 @@ return new class extends Migration
         });
 
         // Add status enum column
-        DB::statement("ALTER TABLE support_tickets ADD COLUMN status support_ticket_status_enum DEFAULT 'open'");
+        SchemaCompat::statement("ALTER TABLE support_tickets ADD COLUMN status support_ticket_status_enum DEFAULT 'open'");
 
         Schema::create('ticket_messages', function (Blueprint $table) {
             $table->id('message_id');

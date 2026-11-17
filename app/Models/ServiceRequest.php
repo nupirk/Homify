@@ -45,7 +45,7 @@ class ServiceRequest extends Model
     ];
 
     protected $casts = [
-        'service_date' => 'date',
+        'service_date' => 'date:Y-m-d',
         'start_time' => 'datetime:H:i',
         'end_time' => 'datetime:H:i',
         'partner_assigned_at' => 'datetime',

@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Database\Migrations\Migration;
+use App\Support\SchemaCompat;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\DB;
@@ -41,7 +42,7 @@ return new class extends Migration
         });
 
         // Add user_type enum column
-        DB::statement("ALTER TABLE users ADD COLUMN user_type user_type_enum DEFAULT 'customer'");
+        SchemaCompat::statement("ALTER TABLE users ADD COLUMN user_type user_type_enum DEFAULT 'customer'");
 
         // 2. ADDRESSES
         Schema::create('addresses', function (Blueprint $table) {
@@ -61,7 +62,7 @@ return new class extends Migration
         });
 
         // Add address_type enum column
-        DB::statement("ALTER TABLE addresses ADD COLUMN address_type address_type_enum DEFAULT 'home'");
+        SchemaCompat::statement("ALTER TABLE addresses ADD COLUMN address_type address_type_enum DEFAULT 'home'");
 
         Schema::create('password_reset_tokens', function (Blueprint $table) {
             $table->string('email')->primary();

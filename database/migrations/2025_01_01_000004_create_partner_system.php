@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Database\Migrations\Migration;
+use App\Support\SchemaCompat;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\DB;
@@ -28,7 +29,7 @@ return new class extends Migration
         });
 
         // Add status enum column
-        DB::statement("ALTER TABLE partner_profiles ADD COLUMN status partner_status_enum DEFAULT 'onboarding'");
+        SchemaCompat::statement("ALTER TABLE partner_profiles ADD COLUMN status partner_status_enum DEFAULT 'onboarding'");
 
         Schema::create('partner_skills', function (Blueprint $table) {
             $table->foreignId('partner_id')->constrained('partner_profiles', 'partner_id')->onDelete('cascade');

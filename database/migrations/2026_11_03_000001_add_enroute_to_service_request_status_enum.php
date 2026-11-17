@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Database\Migrations\Migration;
+use App\Support\SchemaCompat;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -19,7 +20,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        DB::statement("ALTER TYPE service_request_status_enum ADD VALUE IF NOT EXISTS 'enroute'");
+        SchemaCompat::statement("ALTER TYPE service_request_status_enum ADD VALUE IF NOT EXISTS 'enroute'");
     }
 
     public function down(): void

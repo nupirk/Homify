@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\SuperAdmin;
 
 use Illuminate\Http\Request;
+use App\Support\SchemaCompat;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\PartnerProfile;
@@ -22,10 +23,10 @@ class DashboardController extends Controller
         if ($request->filled('search')) {
             $s = '%' . $request->search . '%';
             $query->where(function ($q) use ($s) {
-                $q->where('email', 'ILIKE', $s)
-                    ->orWhere('first_name', 'ILIKE', $s)
-                    ->orWhere('last_name', 'ILIKE', $s)
-                    ->orWhere('phone', 'ILIKE', $s);
+                $q->where('email', SchemaCompat::likeOperator(), $s)
+                    ->orWhere('first_name', SchemaCompat::likeOperator(), $s)
+                    ->orWhere('last_name', SchemaCompat::likeOperator(), $s)
+                    ->orWhere('phone', SchemaCompat::likeOperator(), $s);
             });
         }
 

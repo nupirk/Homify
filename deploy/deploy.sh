@@ -24,6 +24,25 @@ git pull --ff-only origin "$BRANCH"
 echo "==> Installing composer dependencies"
 composer install --no-dev --prefer-dist --no-interaction --optimize-autoloader
 
+echo "==> Preparing database"
+# SQLite needs the file to exist before migrate: the driver refuses to create it.
+if grep -qE '^DB_CONNECTION=["]?sqlite' .env 2>/dev/null; then
+    DB_FILE="$(grep -E '^DB_DATABASE=' .env | head -n1 | cut -d= -f2- | tr -d '"')"
+    DB_FILE="${DB_FILE:-database/database.sqlite}"
+    case "$DB_FILE" in
+        /*) ;;
+        *) DB_FILE="$APP_DIR/$DB_FILE" ;;
+    esac
+
+    if [ ! -f "$DB_FILE" ]; then
+        echo "    creating $DB_FILE"
+        touch "$DB_FILE"
+    fi
+
+    chown www-data:www-data "$DB_FILE" 2>/dev/null || true
+    chmod 660 "$DB_FILE" 2>/dev/null || true
+fi
+
 echo "==> Running migrations"
 "$PHP_BIN" artisan migrate --force
 

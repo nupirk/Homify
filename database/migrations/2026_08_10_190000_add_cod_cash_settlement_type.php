@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Database\Migrations\Migration;
+use App\Support\SchemaCompat;
 use Illuminate\Support\Facades\DB;
 
 return new class extends Migration
@@ -14,13 +15,13 @@ return new class extends Migration
      */
     public function up(): void
     {
-        DB::statement("ALTER TABLE ledger_entries DROP CONSTRAINT IF EXISTS ledger_entries_type_check");
-        DB::statement("ALTER TABLE ledger_entries ADD CONSTRAINT ledger_entries_type_check CHECK ((type)::text = ANY (ARRAY['CUSTOMER_DEBIT'::text, 'ESCROW_CREDIT'::text, 'PARTNER_EARNING'::text, 'PLATFORM_FEE'::text, 'TAX_PAYABLE'::text, 'WITHDRAWAL'::text, 'REFUND'::text, 'COD_RECEIPT'::text, 'COD_COMMISSION'::text, 'COD_CASH_SETTLEMENT'::text, 'WITHDRAWAL_COMPLETED'::text, 'BALANCE_RECONCILIATION'::text, 'WITHDRAWAL_REVERSAL'::text, 'EARNING_REVERSAL'::text]))");
+        SchemaCompat::statement("ALTER TABLE ledger_entries DROP CONSTRAINT IF EXISTS ledger_entries_type_check");
+        SchemaCompat::statement("ALTER TABLE ledger_entries ADD CONSTRAINT ledger_entries_type_check CHECK ((type)::text = ANY (ARRAY['CUSTOMER_DEBIT'::text, 'ESCROW_CREDIT'::text, 'PARTNER_EARNING'::text, 'PLATFORM_FEE'::text, 'TAX_PAYABLE'::text, 'WITHDRAWAL'::text, 'REFUND'::text, 'COD_RECEIPT'::text, 'COD_COMMISSION'::text, 'COD_CASH_SETTLEMENT'::text, 'WITHDRAWAL_COMPLETED'::text, 'BALANCE_RECONCILIATION'::text, 'WITHDRAWAL_REVERSAL'::text, 'EARNING_REVERSAL'::text]))");
     }
 
     public function down(): void
     {
-        DB::statement("ALTER TABLE ledger_entries DROP CONSTRAINT IF EXISTS ledger_entries_type_check");
-        DB::statement("ALTER TABLE ledger_entries ADD CONSTRAINT ledger_entries_type_check CHECK ((type)::text = ANY (ARRAY['CUSTOMER_DEBIT'::text, 'ESCROW_CREDIT'::text, 'PARTNER_EARNING'::text, 'PLATFORM_FEE'::text, 'TAX_PAYABLE'::text, 'WITHDRAWAL'::text, 'REFUND'::text, 'COD_RECEIPT'::text, 'COD_COMMISSION'::text, 'WITHDRAWAL_COMPLETED'::text, 'BALANCE_RECONCILIATION'::text, 'WITHDRAWAL_REVERSAL'::text, 'EARNING_REVERSAL'::text]))");
+        SchemaCompat::statement("ALTER TABLE ledger_entries DROP CONSTRAINT IF EXISTS ledger_entries_type_check");
+        SchemaCompat::statement("ALTER TABLE ledger_entries ADD CONSTRAINT ledger_entries_type_check CHECK ((type)::text = ANY (ARRAY['CUSTOMER_DEBIT'::text, 'ESCROW_CREDIT'::text, 'PARTNER_EARNING'::text, 'PLATFORM_FEE'::text, 'TAX_PAYABLE'::text, 'WITHDRAWAL'::text, 'REFUND'::text, 'COD_RECEIPT'::text, 'COD_COMMISSION'::text, 'WITHDRAWAL_COMPLETED'::text, 'BALANCE_RECONCILIATION'::text, 'WITHDRAWAL_REVERSAL'::text, 'EARNING_REVERSAL'::text]))");
     }
 };

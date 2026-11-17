@@ -29,8 +29,8 @@ class CommissionRule extends Model
         'slab_end' => 'decimal:2',
         'partner_pct' => 'decimal:2',
         'platform_pct' => 'decimal:2',
-        'valid_from' => 'date',
-        'valid_to' => 'date',
+        'valid_from' => 'date:Y-m-d',
+        'valid_to' => 'date:Y-m-d',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];

@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Database\Migrations\Migration;
+use App\Support\SchemaCompat;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\DB;
@@ -22,7 +23,7 @@ return new class extends Migration
         });
 
         // Add notification_type enum column
-        DB::statement("ALTER TABLE notifications ADD COLUMN notification_type notification_type_enum DEFAULT 'info'");
+        SchemaCompat::statement("ALTER TABLE notifications ADD COLUMN notification_type notification_type_enum DEFAULT 'info'");
 
         // Event Store for Event Sourcing
         Schema::create('event_store', function (Blueprint $table) {

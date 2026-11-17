@@ -54,9 +54,7 @@ class PaymentWebhookIdempotencyTest extends TestCase
 
         // An explicit user_id=1 insert does not advance the Postgres sequence;
         // after a fresh migrate the next User::create would collide with id 1.
-        \Illuminate\Support\Facades\DB::statement(
-            "SELECT setval('users_user_id_seq', GREATEST((SELECT COALESCE(MAX(user_id), 1) FROM users), 1))"
-        );
+        $this->syncUserIdSequence();
 
         $this->customer = User::create([
             'first_name' => 'Test',

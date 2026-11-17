@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Symfony\Component\Process\Process;
 
@@ -30,13 +31,17 @@ class BackupDatabase extends Command
     {
         $connection = config('database.default');
 
-        if ($connection !== 'pgsql') {
-            $this->error("db:backup only supports the pgsql driver (current: {$connection}).");
-            return self::FAILURE;
-        }
-
         $directory = $this->option('path') ?: storage_path('backups');
         File::ensureDirectoryExists($directory);
+
+        if ($connection === 'sqlite') {
+            return $this->backupSqlite($directory);
+        }
+
+        if ($connection !== 'pgsql') {
+            $this->error("db:backup supports the pgsql and sqlite drivers (current: {$connection}).");
+            return self::FAILURE;
+        }
 
         $binary = config('app.pg_dump_binary', 'pg_dump');
         $config = config("database.connections.{$connection}");
@@ -78,13 +83,48 @@ class BackupDatabase extends Command
         return self::SUCCESS;
     }
 
+    /**
+     * SQLite backup: VACUUM INTO writes a consistent snapshot of a live
+     * database, which a plain file copy does not guarantee.
+     */
+    private function backupSqlite(string $directory): int
+    {
+        $source = config('database.connections.sqlite.database');
+
+        if (! $source || ! File::exists($source)) {
+            $this->error('db:backup could not find the SQLite database file.');
+
+            return self::FAILURE;
+        }
+
+        $file = $directory . DIRECTORY_SEPARATOR . 'homify_' . now()->format('Ymd_His') . '.sqlite';
+
+        try {
+            DB::connection('sqlite')->statement('VACUUM INTO ?', [$file]);
+        } catch (\Throwable $e) {
+            if (File::exists($file)) {
+                File::delete($file);
+            }
+
+            $this->error('Backup failed: ' . $e->getMessage());
+
+            return self::FAILURE;
+        }
+
+        $this->info('Backup written: ' . $file);
+
+        $this->prune($directory, (int) ($this->option('keep') ?: config('app.backup_retention_days', 14)));
+
+        return self::SUCCESS;
+    }
+
     private function prune(string $directory, int $keepDays): void
     {
         $cutoff = now()->subDays($keepDays)->getTimestamp();
         $removed = 0;
 
         foreach (File::files($directory) as $file) {
-            if ($file->getExtension() !== 'dump') {
+            if (! in_array($file->getExtension(), ['dump', 'sqlite'], true)) {
                 continue;
             }
             if ($file->getMTime() < $cutoff) {

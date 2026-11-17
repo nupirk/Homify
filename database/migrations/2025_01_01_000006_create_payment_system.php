@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Database\Migrations\Migration;
+use App\Support\SchemaCompat;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\DB;
@@ -73,8 +74,8 @@ return new class extends Migration
         });
 
         // Add type and status enum columns
-        DB::statement("ALTER TABLE transactions ADD COLUMN transaction_type transaction_type_enum DEFAULT 'payment'");
-        DB::statement("ALTER TABLE transactions ADD COLUMN status transaction_status_enum DEFAULT 'pending'");
+        SchemaCompat::statement("ALTER TABLE transactions ADD COLUMN transaction_type transaction_type_enum DEFAULT 'payment'");
+        SchemaCompat::statement("ALTER TABLE transactions ADD COLUMN status transaction_status_enum DEFAULT 'pending'");
 
         // LEDGER: Double-Entry Bookkeeping
         Schema::create('ledger_accounts', function (Blueprint $table) {
@@ -87,7 +88,7 @@ return new class extends Migration
         });
 
         // Add account_type enum column
-        DB::statement("ALTER TABLE ledger_accounts ADD COLUMN account_type account_type_enum");
+        SchemaCompat::statement("ALTER TABLE ledger_accounts ADD COLUMN account_type account_type_enum");
 
         // Skip the old complex ledger structure - we use simple ledger below
 
@@ -113,7 +114,7 @@ return new class extends Migration
         });
 
         // Add status enum column
-        DB::statement("ALTER TABLE partner_payouts ADD COLUMN status payout_status_enum DEFAULT 'pending'");
+        SchemaCompat::statement("ALTER TABLE partner_payouts ADD COLUMN status payout_status_enum DEFAULT 'pending'");
 
         // EARNINGS SYSTEM
         Schema::create('commission_rules', function (Blueprint $table) {
@@ -137,7 +138,10 @@ return new class extends Migration
             $table->id();
             $table->string('booking_id')->nullable(); // nullable for non-order entries
             $table->foreignId('user_id')->constrained('users', 'user_id'); // who owns the money
-            $table->enum('type', [
+            // Later migrations extend this list (COD and PAS settlements). PostgreSQL
+            // does that by rebuilding the enum; SQLite cannot alter a CHECK, so there
+            // the column is a string the application validates.
+            $ledgerTypes = [
                 'CUSTOMER_DEBIT',        // money locked from customer
                 'ESCROW_CREDIT',         // money parked in platform
                 'PARTNER_EARNING',       // paid out to partner
@@ -150,7 +154,10 @@ return new class extends Migration
                 'WITHDRAWAL_COMPLETED',  // withdrawal processed by admin
                 'BALANCE_RECONCILIATION',// manual balance fix
                 'WITHDRAWAL_REVERSAL'    // withdrawal reverted
-            ]);
+            ];
+            SchemaCompat::isPostgres()
+                ? $table->enum('type', $ledgerTypes)
+                : $table->string('type', 40);
             $table->decimal('amount', 12, 2)->check('amount >= 0');
             $table->char('currency', 3)->default('NPR');
             $table->decimal('balance_after', 12, 2)->nullable(); // running balance of user's wallet

@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\LedgerEntry;
+use App\Support\SchemaCompat;
 use App\Models\Order;
 use App\Models\PartnerBalance;
 use App\Models\PartnerPayout;
@@ -168,7 +169,7 @@ class LedgerService
         // attached to the booking they reverse.
         $platformRows = LedgerEntry::where('booking_id', $bookingId)
             ->whereIn('type', ['ESCROW_CREDIT', 'PLATFORM_FEE', 'TAX_PAYABLE'])
-            ->whereRaw("(metadata->>'dispute_reversal') IS DISTINCT FROM 'true'")
+            ->whereRaw(SchemaCompat::jsonFlagExpression('metadata', 'dispute_reversal') . " IS DISTINCT FROM 'true'")
             ->get();
 
         foreach ($platformRows as $row) {
@@ -275,7 +276,7 @@ class LedgerService
             $existingReceipt = LedgerEntry::where('booking_id', $bookingId)
                 ->where('user_id', $partnerId)
                 ->where('type', 'PAS_RECEIPT')
-                ->whereRaw("(metadata->>'dispute_reversal') IS DISTINCT FROM 'true'")
+                ->whereRaw(SchemaCompat::jsonFlagExpression('metadata', 'dispute_reversal') . " IS DISTINCT FROM 'true'")
                 ->exists();
 
             if ($existingReceipt) {
@@ -517,7 +518,7 @@ class LedgerService
             $alreadyReversed = LedgerEntry::where('booking_id', $bookingId)
                 ->where('user_id', $partnerId)
                 ->where('type', 'PAS_RECEIPT')
-                ->whereRaw("(metadata->>'dispute_reversal') = 'true'")
+                ->whereRaw(SchemaCompat::jsonFlagExpression('metadata', 'dispute_reversal') . " = 'true'")
                 ->exists();
 
             if ($alreadyReversed) {

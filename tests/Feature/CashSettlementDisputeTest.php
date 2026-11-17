@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use App\Support\SchemaCompat;
 use Laravel\Sanctum\Sanctum;
 use Tests\CreatesApplication;
 use Tests\TestCase;
@@ -49,9 +50,7 @@ class CashSettlementDisputeTest extends TestCase
             'user_type' => 'admin',
             'is_active' => true,
         ]));
-        \Illuminate\Support\Facades\DB::statement(
-            "SELECT setval('users_user_id_seq', GREATEST((SELECT COALESCE(MAX(user_id), 1) FROM users), 1))"
-        );
+        $this->syncUserIdSequence();
 
         $this->customer = User::create([
             'first_name' => 'Test', 'last_name' => 'Customer',
@@ -179,7 +178,7 @@ class CashSettlementDisputeTest extends TestCase
         // Reversal entries for BOTH partners (one PAS_RECEIPT reversal each).
         $receiptReversals = LedgerEntry::where('booking_id', $order->order_id)
             ->where('type', 'PAS_RECEIPT')
-            ->whereRaw("(metadata->>'dispute_reversal') = 'true'")
+            ->whereRaw(SchemaCompat::jsonFlagExpression('metadata', 'dispute_reversal') . " = 'true'")
             ->get();
         $this->assertSame(2, $receiptReversals->count());
         foreach ($receiptReversals as $reversal) {
@@ -195,7 +194,7 @@ class CashSettlementDisputeTest extends TestCase
             ->assertStatus(409);
         $this->assertSame(2, LedgerEntry::where('booking_id', $order->order_id)
             ->where('type', 'PAS_RECEIPT')
-            ->whereRaw("(metadata->>'dispute_reversal') = 'true'")
+            ->whereRaw(SchemaCompat::jsonFlagExpression('metadata', 'dispute_reversal') . " = 'true'")
             ->count());
     }
 
@@ -225,7 +224,7 @@ class CashSettlementDisputeTest extends TestCase
         // No reversal entries were posted.
         $this->assertSame(0, LedgerEntry::where('booking_id', $order->order_id)
             ->where('type', 'PAS_RECEIPT')
-            ->whereRaw("(metadata->>'dispute_reversal') = 'true'")
+            ->whereRaw(SchemaCompat::jsonFlagExpression('metadata', 'dispute_reversal') . " = 'true'")
             ->count());
     }
 }

@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Database\Migrations\Migration;
+use App\Support\SchemaCompat;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\DB;
@@ -55,7 +56,7 @@ return new class extends Migration
         });
 
         // Add unit enum column
-        DB::statement("ALTER TABLE service_pricing ADD COLUMN unit unit_enum DEFAULT 'hour'");
+        SchemaCompat::statement("ALTER TABLE service_pricing ADD COLUMN unit unit_enum DEFAULT 'hour'");
     }
 
     public function down()

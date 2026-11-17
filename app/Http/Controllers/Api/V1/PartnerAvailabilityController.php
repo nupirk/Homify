@@ -105,8 +105,8 @@ class PartnerAvailabilityController extends Controller
                     PartnerAvailability::create([
                         'partner_id' => $partner->partner_id,
                         'service_date' => $date,
-                        'start_time' => '00:00',
-                        'end_time' => '00:00',
+                        'start_time' => '00:00:00',
+                        'end_time' => '00:00:00',
                         'slot_length_min' => AvailabilityService::SLOT_STEP_MIN * 2,
                         'booked' => false,
                     ]);
@@ -125,8 +125,10 @@ class PartnerAvailabilityController extends Controller
                 PartnerAvailability::create([
                     'partner_id' => $partner->partner_id,
                     'service_date' => $date,
-                    'start_time' => $window['start_time'],
-                    'end_time' => $window['end_time'],
+                    // Stored as HH:MM:SS to match a PostgreSQL time column;
+                    // SQLite keeps the string exactly as written.
+                    'start_time' => $window['start_time'] . ':00',
+                    'end_time' => $window['end_time'] . ':00',
                     'slot_length_min' => AvailabilityService::SLOT_STEP_MIN * 2,
                     'booked' => false,
                 ]);
