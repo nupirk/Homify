@@ -3,6 +3,8 @@ name: CI
 on:
   push:
     branches: [main]
+  # Lets you start a run from the Actions tab without pushing.
+  workflow_dispatch:
 
 permissions:
   contents: read
