@@ -32,6 +32,16 @@ php artisan serve          # API on http://localhost:8000
 
 Health check: `GET /up`. API base: `/api/v1`. Admin panel: `/admin`.
 
+## Tests
+
+The suite runs against PostgreSQL and uses `RefreshDatabase`, so point it at a
+disposable database — everything in it is wiped.
+
+```bash
+cp .env.testing.example .env.testing   # set DB_* to a throwaway database
+php artisan test
+```
+
 ## Seeding
 
 `php artisan db:seed` runs `ProductionSeeder`, which creates only what a live
