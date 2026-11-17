@@ -1,0 +1,74 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Audit & test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: homify_test
+          POSTGRES_USER: homify
+          POSTGRES_PASSWORD: secret
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U homify -d homify_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      # Makes `php artisan` read .env.testing, not .env (which never exists in CI).
+      APP_ENV: testing
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: pgsql, pdo_pgsql, mbstring, xml, dom, ctype, curl, zip, bcmath, gd, intl, fileinfo
+          coverage: none
+          tools: composer:v2
+
+      - name: Cache Composer downloads
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/composer
+          key: composer-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-
+
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-interaction --no-progress
+
+      # Non-zero exit on any advisory in composer.lock (dev packages included).
+      - name: Audit dependencies
+        run: composer audit --no-interaction
+
+      - name: Prepare test environment
+        run: |
+          cp .env.testing.example .env.testing
+          sed -i 's/^DB_HOST=.*/DB_HOST=127.0.0.1/' .env.testing
+          sed -i 's/^DB_PORT=.*/DB_PORT=5432/' .env.testing
+          sed -i 's/^DB_DATABASE=.*/DB_DATABASE=homify_test/' .env.testing
+          sed -i 's/^DB_USERNAME=.*/DB_USERNAME=homify/' .env.testing
+          sed -i 's/^DB_PASSWORD=.*/DB_PASSWORD=secret/' .env.testing
+
+      - name: Verify database connection
+        run: php artisan migrate --force
+
+      - name: Run tests
+        run: php artisan test
