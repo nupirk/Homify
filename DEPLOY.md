@@ -48,7 +48,7 @@ supported. PostgreSQL 14+ is fine.
 ```bash
 sudo mkdir -p /var/www/homify-api
 sudo chown -R "$USER":www-data /var/www/homify-api
-git clone <YOUR_REPO_URL> /var/www/homify-api
+git clone https://github.com/nupirk/Homify.git /var/www/homify-api
 cd /var/www/homify-api
 
 composer install --no-dev --prefer-dist --optimize-autoloader
