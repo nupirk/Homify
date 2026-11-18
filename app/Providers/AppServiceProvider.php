@@ -95,8 +95,11 @@ class AppServiceProvider extends ServiceProvider
             return Limit::perMinute(15)->by($request->ip());
         });
 
+        // 20/hour, not 5: a single application involves several document
+        // retries, and the strict ceiling locked applicants out of a form they
+        // were still filling in.
         RateLimiter::for('partner-apply', function (Request $request) {
-            return Limit::perHour(5)->by($request->ip());
+            return Limit::perHour(20)->by($request->ip());
         });
 
         // Per-IP ceiling for the whole OTP surface (send/verify/resend). The

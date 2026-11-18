@@ -8,6 +8,7 @@ use App\Support\Redactor;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 
 /**
@@ -94,6 +95,17 @@ class ErrorReportController extends Controller
             ]);
         }
 
+        // Client crashes are stored for the admin dashboard, but the server log
+        // is where anyone debugging actually looks - and where a report has to
+        // appear even when the dashboard is not open.
+        $this->writeToServerLog($level, $message, [
+            'screen' => $screen,
+            'platform' => $data['platform'] ?? null,
+            'app_version' => $data['app_version'] ?? null,
+            'user_id' => $userId,
+            'fingerprint' => substr($fingerprint, 0, 12),
+        ]);
+
         return response()->json(['success' => true, 'message' => 'accepted'], 202);
     }
 
@@ -112,6 +124,23 @@ class ErrorReportController extends Controller
             'success' => true,
             'data' => $query->paginate($perPage),
         ]);
+    }
+
+    /**
+     * Mirror the report into storage/logs at the matching level. Client text is
+     * flattened to one line so a crafted message cannot forge log entries.
+     */
+    private function writeToServerLog(string $level, string $message, array $context): void
+    {
+        $line = array_merge([
+            'message' => str_replace(["\r", "\n"], ' ', substr($message, 0, 300)),
+        ], $context);
+
+        match ($level) {
+            'fatal', 'error' => Log::error('Client error reported', $line),
+            'warning' => Log::warning('Client warning reported', $line),
+            default => Log::info('Client event reported', $line),
+        };
     }
 
     /** Drop anything non-scalar and cap key/value sizes. */

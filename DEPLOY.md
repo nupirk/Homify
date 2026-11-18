@@ -174,6 +174,28 @@ sudo -u www-data php artisan tinker --execute="echo request()->ip();"
 If that still prints a Cloudflare range, the IP-based limiters are shared -
 fix nginx before relying on them.
 
+### Upload limits (partner KYC documents)
+
+The partner application sends its documents as base64 JSON, so files are ~33%
+larger on the wire. Three 5MB photos are a ~20MB request: `client_max_body_size
+20M` in nginx rejected real applications with an HTML 413, and PHP's default
+`post_max_size` (8M) drops the body entirely. Keep both sides above the client
+caps (images are compressed to ~2MB, PDFs capped at 4MB, 12MB total):
+
+```ini
+; /etc/php/8.3/fpm/php.ini
+upload_max_filesize = 50M
+post_max_size = 48M
+memory_limit = 256M
+```
+
+After editing, `sudo systemctl reload php8.3-fpm`. `deploy/nginx.conf` ships
+`client_max_body_size 40M`.
+
+Also keep `LOG_LEVEL=info` in `.env` (see `.env.example`): at `warning` every
+`Log::info` flow line - OTP sends, application submissions, document uploads -
+is discarded, which makes a failed request look like it was never logged.
+
 TLS:
 
 ```bash

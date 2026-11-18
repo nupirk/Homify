@@ -6,6 +6,7 @@ use App\Models\ErrorLog;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Laravel\Sanctum\Sanctum;
 use Tests\CreatesApplication;
 use Tests\TestCase;
@@ -188,5 +189,26 @@ class ErrorReportIngestTest extends TestCase
 
         $this->postJson('/api/v1/errors', ['message' => 'one too many'])
             ->assertStatus(429);
+    }
+
+    public function test_a_client_error_is_mirrored_into_the_server_log(): void
+    {
+        Log::spy();
+
+        $this->asIp('10.20.0.10')->postJson('/api/v1/errors', [
+            'message' => "checkout failed\nsecond line",
+            'level' => 'error',
+            'screen' => 'Checkout',
+        ])->assertStatus(202);
+
+        // storage/logs is where a developer actually looks; a report that only
+        // lands in the admin dashboard looks like nothing was logged.
+        Log::shouldHaveReceived('error')
+            ->once()
+            ->withArgs(function (string $message, array $context) {
+                return $message === 'Client error reported'
+                    && $context['screen'] === 'Checkout'
+                    && $context['message'] === 'checkout failed second line';
+            });
     }
 }

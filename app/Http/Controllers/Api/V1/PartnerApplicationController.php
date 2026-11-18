@@ -8,6 +8,7 @@ use App\Models\PartnerApplication;
 use App\Models\PartnerProfile;
 use App\Models\PartnerKycDocument;
 use App\Models\Service;
+use App\Support\Redactor;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
@@ -64,9 +65,19 @@ class PartnerApplicationController extends Controller
      */
     public function submitApplication(Request $request)
     {
+        // Diagnostics only: the old line dumped the whole body (including the
+        // applicant's email, phone and address) into the log. What matters for
+        // debugging a failed submit is the transport size and the document
+        // shape - not the applicant's personal details.
+        $base64Documents = $request->input('documents_base64');
+
         Log::info('Partner application submission started', [
-            'request_data' => $request->except(['password', 'password_confirmation']),
-            'files' => $this->checkForDocumentFiles($request) ? 'documents_present' : 'no_documents'
+            'email' => $request->filled('email') ? Redactor::email((string) $request->input('email')) : null,
+            'documents' => $this->checkForDocumentFiles($request)
+                ? 'files'
+                : (is_array($base64Documents) ? 'base64' : 'none'),
+            'document_count' => is_array($base64Documents) ? count($base64Documents) : 0,
+            'content_length' => (int) $request->header('Content-Length'),
         ]);
 
         try {
@@ -212,7 +223,7 @@ class PartnerApplicationController extends Controller
                     'documents_base64' => 'required|array|min:1|max:10',
                     'documents_base64.*.name' => 'required|string|max:255',
                     'documents_base64.*.type' => 'required|string',
-                    'documents_base64.*.data' => 'required|string',
+                    'documents_base64.*.data' => 'required|string|max:6000000',
                     'document_types' => 'required|array',
                     'document_types.*' => 'required|in:license,insurance,identity,address_proof,bank_statement,tax_certificate',
                     'document_names' => 'required|array',
@@ -228,6 +239,26 @@ class PartnerApplicationController extends Controller
 
                     DB::rollBack();
                     return $this->validationErrorResponse($validator->errors());
+                }
+
+                // Per-file limits alone still allow an arbitrarily large total.
+                // Refuse it here with a readable 422 instead of letting nginx or
+                // PHP cut the request off with an opaque 413.
+                $totalBase64 = array_sum(array_map(
+                    static fn ($document) => strlen((string) ($document['data'] ?? '')),
+                    (array) $request->input('documents_base64', [])
+                ));
+
+                if ($totalBase64 > 16000000) {
+                    DB::rollBack();
+
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Your documents are too large to send together. Attach smaller files or fewer documents.',
+                        'errors' => [
+                            'documents_base64' => ['The combined documents exceed the upload limit.'],
+                        ],
+                    ], 422);
                 }
 
                 // Handle base64 document upload
