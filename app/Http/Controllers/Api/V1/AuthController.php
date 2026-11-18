@@ -44,12 +44,12 @@ class AuthController extends Controller
                 ]);
             }
 
-            $token = $user->createToken('app')->plainTextToken;
-
-            // Send the verification OTP by email. Email is the free channel -
-            // it needs no per-message spend and no SMS gateway configured, so a
-            // zero-budget deployment can still verify new accounts.
+            // No session is issued at registration: the account exists but
+            // stays unusable until the emailed code is verified. This is what
+            // stops the OTP step from being skippable - there is no token to
+            // fall back on.
             $devOtp = null;
+            $otpSent = false;
             try {
                 $emailOtpService = app(EmailOtpService::class);
                 $otpRecord = OtpVerification::createForEmail(
@@ -57,7 +57,7 @@ class AuthController extends Controller
                     'registration',
                     $request->ip()
                 );
-                $emailOtpService->sendOtp($user->email, $otpRecord->otp);
+                $otpSent = $emailOtpService->sendOtp($user->email, $otpRecord->otp);
 
                 $devOtp = $otpRecord->otp;
 
@@ -76,8 +76,11 @@ class AuthController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Registration successful. Please verify your email address.',
+                'message' => $otpSent
+                    ? 'Registration successful. Please verify your email address.'
+                    : 'Registration successful, but we could not send the verification email. Please request a new code.',
                 'requires_verification' => true,
+                'otp_sent' => $otpSent,
                 'user' => [
                     'id' => $user->user_id,
                     'first_name' => $user->first_name,
@@ -86,9 +89,10 @@ class AuthController extends Controller
                     'phone' => $user->phone,
                     'user_type' => $user->user_type,
                     'is_active' => $user->is_active,
+                    'email_verified_at' => $user->email_verified_at,
                     'phone_verified_at' => $user->phone_verified_at,
                 ],
-                'token' => $token,
+                'token' => null,
                 // Development aid only: opt in with EXPOSE_DEV_OTP=true.
                 // Never enabled by default, regardless of APP_ENV.
                 'dev_otp' => config('app.expose_dev_otp') ? $devOtp : null,
@@ -123,6 +127,18 @@ class AuthController extends Controller
                 return response()->json([
                     'success' => false,
                     'message' => 'Account is deactivated. Please contact support.'
+                ], 403);
+            }
+
+            // Email verification is a hard gate on every session. The client
+            // uses `requires_verification` + `email` to open the OTP sheet and
+            // send a fresh code instead of showing "invalid credentials".
+            if (!$user->email_verified_at) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Please verify your email address before signing in.',
+                    'requires_verification' => true,
+                    'email' => $user->email,
                 ], 403);
             }
 
@@ -269,6 +285,17 @@ class AuthController extends Controller
                     'success' => false,
                     'message' => 'User not authenticated'
                 ], 401);
+            }
+
+            // Tokens minted before verification was enforced must not restore
+            // a session either: the app calls this endpoint on boot.
+            if (!$user->email_verified_at) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Please verify your email address.',
+                    'requires_verification' => true,
+                    'email' => $user->email,
+                ], 403);
             }
 
             return response()->json([

@@ -83,6 +83,18 @@ Route::prefix('v1')->group(function () {
 
             $user = $r->user();
             if ($user) {
+                // Email verification gates the session. The app calls this on
+                // boot, so an unverified account (including a token issued
+                // before the gate existed) is signed out instead of restored.
+                if (!$user->email_verified_at) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Please verify your email address.',
+                        'requires_verification' => true,
+                        'email' => $user->email,
+                    ], 403);
+                }
+
                 return response()->json([
                     'success' => true,
                     'user' => [

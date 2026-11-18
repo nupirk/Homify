@@ -45,6 +45,7 @@ class PasswordResetTest extends TestCase
             'password' => Hash::make(self::OLD_PASSWORD),
             'user_type' => 'customer',
             'is_active' => true,
+            'email_verified_at' => now(),
             'phone_verified_at' => now(),
         ]);
     }
