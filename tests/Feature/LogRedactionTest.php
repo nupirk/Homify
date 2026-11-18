@@ -52,6 +52,10 @@ class LogRedactionTest extends TestCase
 
     public function test_registration_otp_is_never_written_to_the_log(): void
     {
+        // The code is only known to the test through the dev-only response;
+        // the database stores a hash now.
+        config(['app.expose_dev_otp' => true]);
+
         $response = $this->postJson('/api/v1/register', [
             'first_name' => 'Log',
             'last_name' => 'Leak',
@@ -67,7 +71,10 @@ class LogRedactionTest extends TestCase
         $otp = OtpVerification::where('email', 'log.leak@homify.test')->latest('id')->first();
         $this->assertNotNull($otp, 'Registration should create an OTP record');
 
-        $this->assertNothingLoggedContains($otp->otp, 'the registration OTP code');
+        $plainCode = $response->json('dev_otp');
+        $this->assertIsString($plainCode);
+
+        $this->assertNothingLoggedContains($plainCode, 'the registration OTP code');
         $this->assertNothingLoggedContains('9812345678', 'the full phone number');
         $this->assertNothingLoggedContains('secretPassword123', 'the account password');
     }

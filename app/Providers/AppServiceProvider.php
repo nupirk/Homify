@@ -99,6 +99,13 @@ class AppServiceProvider extends ServiceProvider
             return Limit::perHour(5)->by($request->ip());
         });
 
+        // Per-IP ceiling for the whole OTP surface (send/verify/resend). The
+        // per-identifier limit stops one address being spammed; this stops one
+        // host walking a list of addresses and exhausting the mail quota.
+        RateLimiter::for('otp', function (Request $request) {
+            return Limit::perMinutes(10, (int) config('app.otp_rate_limit', 30))->by($request->ip());
+        });
+
         RateLimiter::for('webhooks', function (Request $request) {
             return Limit::perMinute(120)->by($request->ip());
         });

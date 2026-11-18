@@ -165,6 +165,20 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | OTP Rate Limit
+    |--------------------------------------------------------------------------
+    |
+    | Codes an unauthenticated client may request or attempt per IP in a
+    | 10-minute window. Per-identifier limits (3 sends, 5 verifies) still apply
+    | on top. Generous enough for a shared household/NAT, tight enough that one
+    | host cannot enumerate addresses or burn the mail quota.
+    |
+    */
+
+    'otp_rate_limit' => env('OTP_RATE_LIMIT', 30),
+
+    /*
+    |--------------------------------------------------------------------------
     | Expose OTP in API responses
     |--------------------------------------------------------------------------
     |
@@ -176,6 +190,18 @@ return [
     */
 
     'expose_dev_otp' => (bool) env('EXPOSE_DEV_OTP', false),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Password Policy
+    |--------------------------------------------------------------------------
+    |
+    | Minimum length enforced by registration and password reset. Kept in one
+    | place so the API validation and the reset flow cannot drift apart.
+    |
+    */
+
+    'password_min_length' => (int) env('PASSWORD_MIN_LENGTH', 8),
 
     /*
     |--------------------------------------------------------------------------

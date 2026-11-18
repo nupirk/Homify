@@ -39,10 +39,13 @@ Route::prefix('v1')->group(function () {
     // Password recovery (public): phone + verified password_reset OTP + new password
     Route::post('auth/reset-password', [AuthController::class, 'resetPassword'])->middleware('throttle:auth');
 
-    // OTP Verification (public - can be used before/after auth)
-    Route::post('otp/send', [OtpController::class, 'sendOtp']);
-    Route::post('otp/verify', [OtpController::class, 'verifyOtp']);
-    Route::post('otp/resend', [OtpController::class, 'resendOtp']);
+    // OTP Verification (public - can be used before/after auth).
+    // `throttle:otp` is the per-IP ceiling: the per-identifier limit alone let
+    // one host trigger codes for hundreds of addresses, burning the mail quota
+    // (which then breaks password recovery for everyone).
+    Route::post('otp/send', [OtpController::class, 'sendOtp'])->middleware('throttle:otp');
+    Route::post('otp/verify', [OtpController::class, 'verifyOtp'])->middleware('throttle:otp');
+    Route::post('otp/resend', [OtpController::class, 'resendOtp'])->middleware('throttle:otp');
 
     // Public Categories and Services (no auth required)
     Route::get('categories', [CategoryController::class, 'index']);

@@ -107,3 +107,6 @@ Schedule::command('bookings:remind-cash-confirmations')->hourly()->withoutOverla
 // Nightly database backup with retention pruning (needs pg_dump on PATH or
 // PG_DUMP_BINARY set). Kept off-peak to avoid competing with traffic.
 Schedule::command('db:backup')->dailyAt('02:30')->withoutOverlapping();
+
+// OTP rows are single-use and short-lived; nothing reads an expired one.
+Schedule::command('otp:prune')->daily()->withoutOverlapping();

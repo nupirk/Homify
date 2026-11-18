@@ -5,14 +5,17 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\LoginRequest;
 use App\Http\Requests\RegisterRequest;
+use App\Mail\PasswordChangedMail;
 use App\Models\User;
 use App\Models\OtpVerification;
 use App\Services\EmailOtpService;
+use App\Support\EmailAddress;
 use App\Support\Redactor;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 
 class AuthController extends Controller
 {
@@ -57,9 +60,9 @@ class AuthController extends Controller
                     'registration',
                     $request->ip()
                 );
-                $otpSent = $emailOtpService->sendOtp($user->email, $otpRecord->otp);
+                $otpSent = $emailOtpService->sendOtp($user->email, $otpRecord->plainOtp ?? '', 'registration');
 
-                $devOtp = $otpRecord->otp;
+                $devOtp = $otpRecord->plainOtp;
 
                 // Never log the code - the log file is not a secure channel.
                 Log::info('Registration OTP sent', [
@@ -109,12 +112,17 @@ class AuthController extends Controller
     public function login(LoginRequest $request): JsonResponse
     {
         try {
-            $loginField = $request->email;
+            $loginField = trim((string) $request->email);
 
             // Determine if login field is email or phone
             $fieldType = filter_var($loginField, FILTER_VALIDATE_EMAIL) ? 'email' : 'phone';
 
-            $user = User::where($fieldType, $loginField)->first();
+            // Case-insensitive on the email branch: accounts saved before
+            // normalization may hold mixed case, and the user should not have
+            // to remember which one they typed at signup.
+            $user = $fieldType === 'email'
+                ? User::whereRaw('LOWER(email) = ?', [EmailAddress::normalize($loginField)])->first()
+                : User::where('phone', $loginField)->first();
 
             if (!$user || !Hash::check($request->password, $user->password)) {
                 return response()->json([
@@ -197,23 +205,24 @@ class AuthController extends Controller
         ]);
 
         try {
-            $submittedOtp = $request->input('otp');
-            $email = $request->input('email');
-            $phone = $request->input('phone');
+            $submittedOtp = (string) $request->input('otp');
+            $viaEmail = $request->filled('email');
 
-            if ($request->filled('email')) {
-                $user = User::where('email', $email)->first();
-                $otpRecord = OtpVerification::findVerifiedForResetEmail($email);
+            if ($viaEmail) {
+                $identifier = EmailAddress::normalize($request->input('email'));
+                $user = User::whereRaw('LOWER(email) = ?', [$identifier])->first();
+                $otpRecord = OtpVerification::findVerifiedForResetEmail($identifier);
             } else {
-                $user = User::where('phone', $phone)->first();
-                $otpRecord = OtpVerification::findVerifiedForReset($phone);
+                $identifier = (string) $request->input('phone');
+                $user = User::where('phone', $identifier)->first();
+                $otpRecord = OtpVerification::findVerifiedForReset($identifier);
             }
 
             // Single generic failure for every "no valid OTP" case: unknown
             // identifier, never verified, expired, already consumed, or mismatch.
             if (!$user
                 || !$otpRecord
-                || !hash_equals((string) $otpRecord->otp, (string) $submittedOtp)
+                || !$otpRecord->matchesCode($submittedOtp)
             ) {
                 return response()->json([
                     'success' => false,
@@ -221,14 +230,47 @@ class AuthController extends Controller
                 ], 400);
             }
 
-            // Same hashing path as register()/login().
-            $user->update(['password' => Hash::make($request->input('password'))]);
+            $newPassword = (string) $request->input('password');
 
-            // Consume the OTP so the same code can never reset twice.
-            $otpRecord->markAsConsumed();
+            // Re-submitting the current password means nothing was recovered,
+            // and it leaves the account on credentials that may be known to
+            // whoever prompted the reset.
+            if (Hash::check($newPassword, $user->password)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'The new password must be different from your current password.',
+                    'reason' => 'same_password',
+                ], 422);
+            }
+
+            $updates = ['password' => Hash::make($newPassword)];
+
+            // Redeeming a code sent to the mailbox proves control of it, so an
+            // account that never verified its email is verified by this act.
+            // Otherwise the login gate would refuse the account the user just
+            // recovered and demand a second code.
+            if ($viaEmail && !$user->email_verified_at) {
+                $updates['email_verified_at'] = now();
+            }
+
+            $user->update($updates);
+
+            // Every existing session dies with the old password: a stolen
+            // token must not survive the reset meant to evict it.
+            $user->tokens()->delete();
+
+            // Retire every outstanding reset code for this identifier, not
+            // just the one used, so no older code can reset again.
+            OtpVerification::consumeAllForReset($viaEmail ? 'email' : 'phone', $identifier);
+
+            // Best-effort: the reset already happened, so a mail failure is
+            // only a missing warning, never a failed reset.
+            $this->notifyPasswordChanged($user);
 
             Log::info('Password reset completed', [
-                'user_id' => $user->user_id
+                'user_id' => $user->user_id,
+                'channel' => $viaEmail ? 'email' : 'phone',
+                'sessions_revoked' => true,
             ]);
 
             return response()->json([
@@ -244,6 +286,24 @@ class AuthController extends Controller
                 'success' => false,
                 'message' => 'Failed to reset password. Please try again.'
             ], 500);
+        }
+    }
+
+    /**
+     * Tell the account owner their password changed - the only signal a
+     * victim gets when someone else resets it. Never throws.
+     */
+    private function notifyPasswordChanged(User $user): void
+    {
+        try {
+            Mail::to($user->email)->send(new PasswordChangedMail(
+                now()->timezone(config('app.timezone'))->format('d M Y, H:i')
+            ));
+        } catch (\Throwable $e) {
+            Log::error('Password changed notice not delivered', [
+                'user_id' => $user->user_id,
+                'error' => $e->getMessage(),
+            ]);
         }
     }
 

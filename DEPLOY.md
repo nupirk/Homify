@@ -86,6 +86,7 @@ Now edit `.env`:
 | `APP_URL` | `https://api.example.com` — gateway callbacks are built from this |
 | `APP_PUBLIC_URL` | `https://example.com` (marketing site / OG base) |
 | `TRUSTED_PROXIES` | `127.0.0.1` (nginx is local; never `*` in production) |
+| `OTP_RATE_LIMIT` | `30` codes per IP per 10 min (default; per-address limits apply on top) |
 | `DB_*` | the `homify` database above |
 | `EXPOSE_DEV_OTP` | `false` (must stay false) |
 | `ADMIN_*` | real admin email / phone; leave `ADMIN_PASSWORD` empty to generate |
@@ -143,6 +144,35 @@ sudo nginx -t && sudo systemctl reload nginx
 `client_max_body_size 20M` for KYC uploads and points FPM at
 `/run/php/php8.3-fpm.sock`. Adjust the socket if you installed another PHP
 version.
+
+### Real client IP (Cloudflare in front)
+
+Every rate limit that is not per-account is keyed by `$request->ip()` - OTP
+sends, login attempts and the whole API ceiling. If the domain is proxied by
+Cloudflare, X-Forwarded-For ends at the Cloudflare edge, so without edge
+configuration the app sees one shared IP: per-IP limits become a single global
+bucket (spurious 429s for everyone) and stop protecting anything.
+
+Have nginx restore the real address from Cloudflare's header:
+
+```nginx
+# in the http {} block (or the site's server {} block)
+set_real_ip_from 173.245.48.0/20;
+# ... add the rest of https://www.cloudflare.com/ips/ ...
+real_ip_header CF-Connecting-IP;
+```
+
+Then confirm from the server that the app sees a client address, not an edge
+address:
+
+```bash
+curl -s -H 'CF-Connecting-IP: 203.0.113.9' -H "Authorization: Bearer $TOKEN" \
+  https://api.example.com/api/v1/user >/dev/null
+sudo -u www-data php artisan tinker --execute="echo request()->ip();"
+```
+
+If that still prints a Cloudflare range, the IP-based limiters are shared -
+fix nginx before relying on them.
 
 TLS:
 

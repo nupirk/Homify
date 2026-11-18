@@ -3,7 +3,6 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Carbon\Carbon;
 
 class OtpVerification extends Model
 {
@@ -28,6 +27,27 @@ class OtpVerification extends Model
         'is_verified' => 'boolean',
         'attempts' => 'integer',
     ];
+
+    /**
+     * The code exactly as generated, held in memory only.
+     *
+     * The `otp` column stores an HMAC, so the plaintext exists just long
+     * enough to be delivered (mail/SMS response) and is never written down.
+     * It is null on any record loaded back from the database.
+     */
+    public ?string $plainOtp = null;
+
+    /** Keyed hash of a code. A leaked database alone cannot recover codes. */
+    public static function hashCode(string $code): string
+    {
+        return hash_hmac('sha256', $code, (string) config('app.key'));
+    }
+
+    /** Timing-safe comparison against the stored hash. */
+    public function matchesCode(string $code): bool
+    {
+        return hash_equals((string) $this->otp, self::hashCode($code));
+    }
 
     /**
      * Check if OTP is expired
@@ -73,6 +93,35 @@ class OtpVerification extends Model
         $this->update([
             'consumed_at' => now(),
         ]);
+    }
+
+    /**
+     * Consume every outstanding password_reset code for an identifier.
+     *
+     * Only the code used for a reset used to be consumed, so an older code
+     * that had already been verified stayed usable for the rest of its
+     * 10-minute window - a second reset from an email the user thought was
+     * spent.
+     */
+    public static function consumeAllForReset(string $channel, string $identifier): int
+    {
+        return self::where($channel === 'email' ? 'email' : 'phone', $identifier)
+            ->where('type', 'password_reset')
+            ->whereNull('consumed_at')
+            ->update(['consumed_at' => now()]);
+    }
+
+    /**
+     * Retire older reset codes once a newer one is verified, so only the most
+     * recently proven code can reset the password.
+     */
+    public static function invalidateOtherResetCodes(string $channel, string $identifier, int $keepId): void
+    {
+        self::where($channel === 'email' ? 'email' : 'phone', $identifier)
+            ->where('type', 'password_reset')
+            ->where('id', '!=', $keepId)
+            ->whereNull('consumed_at')
+            ->update(['consumed_at' => now()]);
     }
 
     /**
@@ -151,14 +200,7 @@ class OtpVerification extends Model
             ->where('is_verified', false)
             ->delete();
 
-        return self::create([
-            'phone' => $phone,
-            'channel' => 'phone',
-            'otp' => self::generateOtp(),
-            'type' => $type,
-            'expires_at' => now()->addMinutes(10),
-            'ip_address' => $ipAddress,
-        ]);
+        return self::issue(['phone' => $phone, 'channel' => 'phone'], $type, $ipAddress);
     }
 
     /**
@@ -174,13 +216,25 @@ class OtpVerification extends Model
             ->where('is_verified', false)
             ->delete();
 
-        return self::create([
-            'email' => $email,
-            'channel' => 'email',
-            'otp' => self::generateOtp(),
+        return self::issue(['email' => $email, 'channel' => 'email'], $type, $ipAddress);
+    }
+
+    /**
+     * @param  array{phone?: string, email?: string, channel: string}  $identifier
+     */
+    private static function issue(array $identifier, string $type, ?string $ipAddress): self
+    {
+        $plain = self::generateOtp();
+
+        $record = self::create(array_merge($identifier, [
+            'otp' => self::hashCode($plain),
             'type' => $type,
             'expires_at' => now()->addMinutes(10),
             'ip_address' => $ipAddress,
-        ]);
+        ]));
+
+        $record->plainOtp = $plain;
+
+        return $record;
     }
 }

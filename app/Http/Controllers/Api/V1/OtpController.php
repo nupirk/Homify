@@ -7,6 +7,7 @@ use App\Models\OtpVerification;
 use App\Models\User;
 use App\Services\EmailOtpService;
 use App\Services\SmsService;
+use App\Support\EmailAddress;
 use App\Support\Redactor;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -48,7 +49,11 @@ class OtpController extends Controller
 
         $channel = $request->input('channel', 'phone');
         $type = $request->input('type', 'registration');
-        $identifier = $channel === 'email' ? $request->input('email') : $request->input('phone');
+        // Emails are canonicalised so "John@X.com" and "john@x.com" are the
+        // same account (and the same OTP record).
+        $identifier = $channel === 'email'
+            ? EmailAddress::normalize($request->input('email'))
+            : (string) $request->input('phone');
 
         // Rate limiting: 3 requests per 10 minutes per identifier.
         $key = 'otp-send:' . $channel . ':' . $identifier;
@@ -105,8 +110,8 @@ class OtpController extends Controller
 
             // Deliver on the matching transport.
             $sent = $channel === 'email'
-                ? $this->emailOtpService->sendOtp($identifier, $otpRecord->otp)
-                : $this->smsService->sendOtp($identifier, $otpRecord->otp);
+                ? $this->emailOtpService->sendOtp($identifier, $otpRecord->plainOtp ?? '', $type)
+                : $this->smsService->sendOtp($identifier, $otpRecord->plainOtp ?? '');
 
             if (!$sent) {
                 Log::warning('OTP delivery failed', [
@@ -144,7 +149,7 @@ class OtpController extends Controller
                     'expires_at' => $otpRecord->expires_at,
                     'expires_in_seconds' => $otpRecord->expires_at->diffInSeconds(now()),
                     // For development only - opt in with EXPOSE_DEV_OTP=true.
-                    'otp' => config('app.expose_dev_otp') ? $otpRecord->otp : null,
+                    'otp' => config('app.expose_dev_otp') ? $otpRecord->plainOtp : null,
                 ]
             ]);
         } catch (\Exception $e) {
@@ -177,7 +182,9 @@ class OtpController extends Controller
         $channel = $request->input('channel', 'phone');
         $otp = $request->input('otp');
         $type = $request->input('type', 'registration');
-        $identifier = $channel === 'email' ? $request->input('email') : $request->input('phone');
+        $identifier = $channel === 'email'
+            ? EmailAddress::normalize($request->input('email'))
+            : (string) $request->input('phone');
 
         // Rate limiting: 5 verification attempts per 10 minutes per identifier.
         $key = 'otp-verify:' . $channel . ':' . $identifier;
@@ -218,8 +225,8 @@ class OtpController extends Controller
                 ], 400);
             }
 
-            // Verify OTP
-            if ($otpRecord->otp !== $otp) {
+            // Verify OTP (hash comparison - the code is never stored plain).
+            if (!$otpRecord->matchesCode((string) $otp)) {
                 $otpRecord->incrementAttempts();
                 RateLimiter::hit($key, 600);
 
@@ -232,6 +239,12 @@ class OtpController extends Controller
 
             // OTP is valid - mark as verified
             $otpRecord->markAsVerified();
+
+            // A freshly proven code supersedes any older reset code still in
+            // its window, so only one reset code is ever live.
+            if ($type === 'password_reset') {
+                OtpVerification::invalidateOtherResetCodes($channel, $identifier, $otpRecord->id);
+            }
 
             // Stamp the matching verification timestamp for registration.
             if ($type === 'registration') {
@@ -286,7 +299,9 @@ class OtpController extends Controller
 
         $channel = $request->input('channel', 'phone');
         $type = $request->input('type', 'registration');
-        $identifier = $channel === 'email' ? $request->input('email') : $request->input('phone');
+        $identifier = $channel === 'email'
+            ? EmailAddress::normalize($request->input('email'))
+            : (string) $request->input('phone');
 
         // Check if there's a recent OTP (less than 30 seconds ago).
         $latestOtp = OtpVerification::where($channel === 'email' ? 'email' : 'phone', $identifier)
@@ -312,21 +327,21 @@ class OtpController extends Controller
     private function hasVerifiedUser(string $channel, string $identifier): bool
     {
         return $channel === 'email'
-            ? User::where('email', $identifier)->whereNotNull('email_verified_at')->exists()
+            ? $this->userByEmail($identifier)?->email_verified_at !== null
             : User::where('phone', $identifier)->whereNotNull('phone_verified_at')->exists();
     }
 
     private function userExists(string $channel, string $identifier): bool
     {
         return $channel === 'email'
-            ? User::where('email', $identifier)->exists()
+            ? $this->userByEmail($identifier) !== null
             : User::where('phone', $identifier)->exists();
     }
 
     private function markUserVerified(string $channel, string $identifier): void
     {
         if ($channel === 'email') {
-            $user = User::where('email', $identifier)->first();
+            $user = $this->userByEmail($identifier);
             if ($user && !$user->email_verified_at) {
                 $user->update(['email_verified_at' => now()]);
             }
@@ -337,6 +352,15 @@ class OtpController extends Controller
         if ($user && !$user->phone_verified_at) {
             $user->update(['phone_verified_at' => now()]);
         }
+    }
+
+    /**
+     * Case-insensitive email lookup: rows written before normalization can
+     * still hold mixed case, and the identifier arrives lowercased.
+     */
+    private function userByEmail(string $email): ?User
+    {
+        return User::whereRaw('LOWER(email) = ?', [EmailAddress::normalize($email)])->first();
     }
 
     private function mask(string $channel, ?string $identifier): string

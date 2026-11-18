@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Support\EmailAddress;
 use Illuminate\Foundation\Http\FormRequest;
 
 class LoginRequest extends FormRequest
@@ -9,6 +10,17 @@ class LoginRequest extends FormRequest
     public function authorize(): bool
     {
         return true;
+    }
+
+    /**
+     * Lowercase a submitted email so a differently-cased address still logs
+     * in. Phone numbers pass through unchanged (strtolower is a no-op there).
+     */
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('email')) {
+            $this->merge(['email' => EmailAddress::normalize($this->input('email'))]);
+        }
     }
     public function rules(): array
     {

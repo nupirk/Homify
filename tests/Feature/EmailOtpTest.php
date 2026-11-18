@@ -64,8 +64,15 @@ class EmailOtpTest extends TestCase
         $this->assertSame('email', $record->channel);
         $this->assertNull($record->phone);
 
-        Mail::assertSent(OtpCodeMail::class, function (OtpCodeMail $mail) use ($record) {
-            return $mail->hasTo(self::EMAIL) && $mail->code === $record->otp;
+        $sentCode = $response->json('data.otp');
+        $this->assertIsString($sentCode);
+
+        // The column holds a keyed hash, not the code the user receives.
+        $this->assertNotSame($sentCode, $record->otp);
+        $this->assertTrue($record->matchesCode($sentCode), 'The delivered code must match the stored hash');
+
+        Mail::assertSent(OtpCodeMail::class, function (OtpCodeMail $mail) use ($sentCode) {
+            return $mail->hasTo(self::EMAIL) && $mail->code === $sentCode;
         });
     }
 

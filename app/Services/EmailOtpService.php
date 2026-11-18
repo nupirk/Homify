@@ -19,7 +19,7 @@ class EmailOtpService
      * Send an OTP to an email address. Never throws: the caller decides
      * whether a failed delivery should fail the request.
      */
-    public function sendOtp(string $email, string $otp): bool
+    public function sendOtp(string $email, string $otp, string $type = 'registration'): bool
     {
         $mailer = (string) config('mail.default');
 
@@ -37,7 +37,10 @@ class EmailOtpService
         }
 
         try {
-            Mail::to($email)->send(new OtpCodeMail($otp));
+            Mail::to($email)->send(new OtpCodeMail(
+                $otp,
+                purpose: $type === 'password_reset' ? 'password_reset' : 'verification',
+            ));
 
             // The code itself is deliberately never logged - a leaked log plus
             // a leaked inbox would hand over live credentials.
