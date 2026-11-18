@@ -184,4 +184,31 @@ class EmailOtpTest extends TestCase
         );
         Mail::assertNothingSent();
     }
+
+    public function test_transport_failure_is_reported_instead_of_a_fake_success(): void
+    {
+        $this->makeUser();
+
+        Mail::shouldReceive('to')->once()->andThrow(
+            new \RuntimeException('Connection could not be established with host "smtp.resend.com:465"')
+        );
+
+        $this->postJson('/api/v1/otp/send', [
+            'channel' => 'email',
+            'email' => self::EMAIL,
+            'type' => 'password_reset',
+        ])->assertStatus(502)->assertJsonPath('success', false);
+    }
+
+    public function test_log_mailer_is_treated_as_a_failed_send(): void
+    {
+        $this->makeUser();
+        config(['mail.default' => 'log']);
+
+        $this->postJson('/api/v1/otp/send', [
+            'channel' => 'email',
+            'email' => self::EMAIL,
+            'type' => 'password_reset',
+        ])->assertStatus(502)->assertJsonPath('success', false);
+    }
 }

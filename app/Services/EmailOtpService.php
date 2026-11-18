@@ -21,6 +21,21 @@ class EmailOtpService
      */
     public function sendOtp(string $email, string $otp): bool
     {
+        $mailer = (string) config('mail.default');
+
+        // The `log` driver writes the message to storage/logs and never opens a
+        // mail connection. It is the default when MAIL_MAILER is unset or when a
+        // cached config predates the SMTP keys, so treat it as a failed send
+        // instead of reporting a delivery that never left the server.
+        if ($mailer === 'log') {
+            Log::error('Email OTP not delivered: MAIL_MAILER=log only writes to the log file', [
+                'email' => Redactor::email($email),
+                'mailer' => $mailer,
+            ]);
+
+            return false;
+        }
+
         try {
             Mail::to($email)->send(new OtpCodeMail($otp));
 
@@ -28,12 +43,18 @@ class EmailOtpService
             // a leaked inbox would hand over live credentials.
             Log::info('Email OTP sent', [
                 'email' => Redactor::email($email),
+                'mailer' => $mailer,
+                'mail_host' => config("mail.mailers.{$mailer}.host"),
+                'mail_from' => config('mail.from.address'),
             ]);
 
             return true;
         } catch (\Throwable $e) {
             Log::error('Email OTP failed', [
                 'email' => Redactor::email($email),
+                'mailer' => $mailer,
+                'mail_host' => config("mail.mailers.{$mailer}.host"),
+                'mail_from' => config('mail.from.address'),
                 'error' => $e->getMessage(),
             ]);
 

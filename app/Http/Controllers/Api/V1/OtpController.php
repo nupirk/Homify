@@ -114,7 +114,16 @@ class OtpController extends Controller
                     'identifier' => $this->mask($channel, $identifier),
                     'type' => $type,
                 ]);
-                // Don't fail the request, just log it.
+
+                // Reporting success for a message that never left the server
+                // leaves the user waiting on a code that cannot arrive and
+                // hides broken mail/SMS settings. Let the client show it.
+                return response()->json([
+                    'success' => false,
+                    'message' => $channel === 'email'
+                        ? 'We could not send the verification email. Please try again shortly.'
+                        : 'We could not send the verification code. Please try again shortly.',
+                ], 502);
             }
 
             // Increment rate limiter
