@@ -128,6 +128,52 @@
         </div>
     </div>
 
+    <!-- System Health (last 24 hours) -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+        <a href="{{ route('admin.error-reports.index') }}"
+            class="bg-white rounded-xl border border-slate-200 shadow-sm p-5 flex items-center justify-between hover:border-slate-300 transition-colors">
+            <div>
+                <p class="text-xs font-medium uppercase tracking-wide text-slate-500">Errors Reported (24h)</p>
+                <p class="mt-2 text-2xl font-bold {{ $stats['errors_24h'] > 0 ? 'text-rose-600' : 'text-slate-900' }}">
+                    {{ number_format($stats['errors_24h']) }}
+                </p>
+                <span class="text-xs text-slate-500">
+                    {{ number_format($stats['error_sources_24h']) }} distinct
+                    {{ \Illuminate\Support\Str::plural('problem', $stats['error_sources_24h']) }}
+                </span>
+            </div>
+            <div class="w-10 h-10 bg-rose-50 rounded-lg flex items-center justify-center flex-shrink-0">
+                <i class="fas fa-bug text-rose-600"></i>
+            </div>
+        </a>
+
+        <a href="{{ route('admin.login-activity.index') }}"
+            class="bg-white rounded-xl border border-slate-200 shadow-sm p-5 flex items-center justify-between hover:border-slate-300 transition-colors">
+            <div>
+                <p class="text-xs font-medium uppercase tracking-wide text-slate-500">Admin Logins (24h)</p>
+                <p class="mt-2 text-2xl font-bold text-slate-900">{{ number_format($stats['admin_logins_24h']) }}</p>
+                <span class="text-xs text-slate-500">Successful sign-ins</span>
+            </div>
+            <div class="w-10 h-10 bg-emerald-50 rounded-lg flex items-center justify-center flex-shrink-0">
+                <i class="fas fa-right-to-bracket text-emerald-600"></i>
+            </div>
+        </a>
+
+        <a href="{{ route('admin.login-activity.index', ['action' => 'admin_login_failed']) }}"
+            class="bg-white rounded-xl border border-slate-200 shadow-sm p-5 flex items-center justify-between hover:border-slate-300 transition-colors">
+            <div>
+                <p class="text-xs font-medium uppercase tracking-wide text-slate-500">Failed Admin Logins (24h)</p>
+                <p class="mt-2 text-2xl font-bold {{ $stats['failed_logins_24h'] > 0 ? 'text-rose-600' : 'text-slate-900' }}">
+                    {{ number_format($stats['failed_logins_24h']) }}
+                </p>
+                <span class="text-xs text-slate-500">Rejected attempts</span>
+            </div>
+            <div class="w-10 h-10 bg-amber-50 rounded-lg flex items-center justify-center flex-shrink-0">
+                <i class="fas fa-triangle-exclamation text-amber-600"></i>
+            </div>
+        </a>
+    </div>
+
     <!-- Charts and Tables -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
         <!-- Booking Trends Chart -->

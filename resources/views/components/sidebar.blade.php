@@ -167,6 +167,11 @@
                     <i class="fas fa-bug w-5 h-5 flex-shrink-0 mr-3"></i>
                     <span class="sidebar-text">Error Reports</span>
                 </a>
+                <a href="{{ route('admin.login-activity.index') }}"
+                    class="group flex items-center px-3 py-2.5 text-sm rounded-lg transition-colors duration-150 {{ request()->routeIs('admin.login-activity.*') ? 'bg-indigo-600 text-white font-medium' : 'text-slate-300 hover:bg-white/5 hover:text-white font-medium' }}">
+                    <i class="fas fa-user-shield w-5 h-5 flex-shrink-0 mr-3"></i>
+                    <span class="sidebar-text">Login Activity</span>
+                </a>
                 <a href="#"
                     class="group flex items-center px-3 py-2.5 text-sm rounded-lg transition-colors duration-150 text-slate-300 hover:bg-white/5 hover:text-white font-medium">
                     <i class="fas fa-cog w-5 h-5 flex-shrink-0 mr-3"></i>

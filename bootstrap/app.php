@@ -18,8 +18,15 @@ return Application::configure(basePath: dirname(__DIR__))
 
         // The 'api' limiter was defined in AppServiceProvider but never wired
         // to the api group, so no request was ever actually throttled.
+        // RecordServerErrors is last so it sees the final 5xx status, including
+        // ones a controller swallowed into its own JSON response.
         $middleware->api(append: [
             \Illuminate\Routing\Middleware\ThrottleRequests::class . ':api',
+            \App\Http\Middleware\RecordServerErrors::class,
+        ]);
+
+        $middleware->web(append: [
+            \App\Http\Middleware\RecordServerErrors::class,
         ]);
 
         $middleware->alias([

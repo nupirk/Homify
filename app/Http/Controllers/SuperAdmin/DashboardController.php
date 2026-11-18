@@ -12,6 +12,8 @@ use App\Models\Service;
 use App\Models\Category;
 use App\Models\Transaction;
 use App\Models\Review;
+use App\Models\AuditLog;
+use App\Models\ErrorLog;
 use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
@@ -70,6 +72,17 @@ class DashboardController extends Controller
                 ->where('type', 'WITHDRAWAL')
                 ->sum('amount'), // This should be negative amounts
             'average_rating' => Review::avg('rating_value'),
+            // System health, so a failure is visible without opening a report page.
+            'errors_24h' => ErrorLog::where('last_seen_at', '>=', now()->subDay())->sum('occurrences'),
+            'error_sources_24h' => ErrorLog::where('last_seen_at', '>=', now()->subDay())->count(),
+            'admin_logins_24h' => AuditLog::where('entity_type', 'admin_auth')
+                ->where('action', 'admin_login')
+                ->where('created_at', '>=', now()->subDay())
+                ->count(),
+            'failed_logins_24h' => AuditLog::where('entity_type', 'admin_auth')
+                ->where('action', 'admin_login_failed')
+                ->where('created_at', '>=', now()->subDay())
+                ->count(),
         ];
 
         $userGrowth = $this->calculateUserGrowth();

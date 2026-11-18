@@ -16,6 +16,7 @@ use App\Http\Controllers\SuperAdmin\PromotionController;
 use App\Http\Controllers\SuperAdmin\PartnerApplicationController;
 use App\Http\Controllers\SuperAdmin\ServiceRequestController;
 use App\Http\Controllers\SuperAdmin\ErrorReportController;
+use App\Http\Controllers\SuperAdmin\LoginActivityController;
 use App\Http\Controllers\Admin\AuthController;
 
 Route::get('/', function () {
@@ -204,9 +205,13 @@ Route::prefix('admin')->name('admin.')->middleware(['admin.auth'])->group(functi
     });
 
     // Error Reporting Portal
-    // Client crash reports captured by POST /api/v1/errors.
+    // Client crash reports captured by POST /api/v1/errors, plus server-side
+    // 5xx failures mirrored there by the RecordServerErrors middleware.
     Route::get('error-reports', [ErrorReportController::class, 'index'])->name('error-reports.index');
     Route::get('error-reports/{errorReport}', [ErrorReportController::class, 'show'])->name('error-reports.show');
+
+    // Admin login activity (audit trail written by Admin\AuthController).
+    Route::get('login-activity', [LoginActivityController::class, 'index'])->name('login-activity.index');
 });
 
 // eSewa payout return URLs.
