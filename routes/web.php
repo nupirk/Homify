@@ -5,7 +5,6 @@ use App\Http\Controllers\SuperAdmin\OrderController;
 use App\Http\Controllers\SuperAdmin\ClientController;
 use App\Http\Controllers\SuperAdmin\LedgerController;
 use App\Http\Controllers\SuperAdmin\ReviewController;
-use App\Http\Controllers\SuperAdmin\BookingController;
 use App\Http\Controllers\SuperAdmin\EarningController;
 use App\Http\Controllers\SuperAdmin\PartnerController;
 use App\Http\Controllers\SuperAdmin\ServiceController;
@@ -13,6 +12,8 @@ use App\Http\Controllers\SuperAdmin\CategoryController;
 use App\Http\Controllers\SuperAdmin\DashboardController;
 use App\Http\Controllers\SuperAdmin\NotificationController;
 use App\Http\Controllers\SuperAdmin\PromotionController;
+use App\Http\Controllers\SuperAdmin\ReportController;
+use App\Http\Controllers\SuperAdmin\BannerController;
 use App\Http\Controllers\SuperAdmin\PartnerApplicationController;
 use App\Http\Controllers\SuperAdmin\ServiceRequestController;
 use App\Http\Controllers\SuperAdmin\ErrorReportController;
@@ -52,15 +53,11 @@ Route::prefix('admin')->name('admin.')->middleware(['admin.auth'])->group(functi
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     // Layout Test (for debugging)
-    Route::get('/layout-test', function () {
-        return view('admin.layout-test');
-    })->name('layout-test');
-
     //Partner Management
+    Route::get('partners-statistics', [PartnerController::class, 'statistics'])->name('partners.statistics');
     Route::resource('partners', PartnerController::class);
     Route::post('partners/{partner}/toggle-status', [PartnerController::class, 'toggleStatus'])->name('partners.toggle-status');
     Route::post('partners/{partner}/update-verification', [PartnerController::class, 'updateVerification'])->name('partners.update-verification');
-    Route::get('partners-statistics', [PartnerController::class, 'statistics'])->name('partners.statistics');
 
     // Partner Applications Management
     Route::get('partner-applications', [PartnerApplicationController::class, 'index'])->name('partner-applications.index');
@@ -73,23 +70,24 @@ Route::prefix('admin')->name('admin.')->middleware(['admin.auth'])->group(functi
     Route::post('partner-applications/bulk-action', [PartnerApplicationController::class, 'bulkAction'])->name('partner-applications.bulk-action');
 
     // Client/User Management
+    Route::get('clients-statistics', [ClientController::class, 'statistics'])->name('clients.statistics');
     Route::resource('clients', ClientController::class)->except(['create', 'store']);
     Route::post('clients/{client}/toggle-status', [ClientController::class, 'toggleStatus'])->name('clients.toggle-status');
     Route::post('clients/{client}/verify-email', [ClientController::class, 'verifyEmail'])->name('clients.verify-email');
-    Route::get('clients-statistics', [ClientController::class, 'statistics'])->name('clients.statistics');
 
     // Categories Management
+    Route::get('categories-statistics', [CategoryController::class, 'statistics'])->name('categories.statistics');
     Route::resource('categories', CategoryController::class);
     Route::post('categories/{category}/toggle-status', [CategoryController::class, 'toggleStatus'])->name('categories.toggle-status');
     Route::post('categories/reorder', [CategoryController::class, 'reorder'])->name('categories.reorder');
-    Route::get('categories-statistics', [CategoryController::class, 'statistics'])->name('categories.statistics');
 
     // Services Management
     Route::resource('services', ServiceController::class);
     Route::post('services/{service}/toggle-status', [ServiceController::class, 'toggleStatus'])->name('services.toggle-status');
-    Route::get('services-statistics', [ServiceController::class, 'statistics'])->name('services.statistics');
 
     // Orders Management (replaces Bookings)
+    Route::get('orders-statistics', [OrderController::class, 'statistics'])->name('orders.statistics');
+    Route::get('orders/export', [OrderController::class, 'export'])->name('orders.export');
     Route::resource('orders', OrderController::class);
     Route::get('orders/{order}/suitable-partners', [OrderController::class, 'getSuitablePartners'])->name('orders.suitable-partners');
     Route::post('orders/{order}/assign-partner', [OrderController::class, 'assignPartner'])->name('orders.assign-partner');
@@ -98,8 +96,6 @@ Route::prefix('admin')->name('admin.')->middleware(['admin.auth'])->group(functi
     Route::post('orders/{order}/complete', [OrderController::class, 'complete'])->name('orders.complete');
     Route::post('orders/update-status', [OrderController::class, 'updateStatus'])->name('orders.update-status');
     Route::post('orders/bulk-update', [OrderController::class, 'bulkUpdateStatus'])->name('orders.bulk-update');
-    Route::get('orders/export', [OrderController::class, 'export'])->name('orders.export');
-    Route::get('orders-statistics', [OrderController::class, 'statistics'])->name('orders.statistics');
 
     // Order completion documents
     Route::get('orders/documents/{documentId}/download', [OrderController::class, 'downloadCompletionDocument'])->name('orders.download-document');
@@ -110,17 +106,20 @@ Route::prefix('admin')->name('admin.')->middleware(['admin.auth'])->group(functi
     Route::patch('service-requests/{request_id}/assign', [ServiceRequestController::class, 'assign'])->name('service-requests.assign');
     Route::get('service-requests/{service_id}/partners', [ServiceRequestController::class, 'getAvailablePartners'])->name('service-requests.partners');
 
-    // Legacy Bookings routes (for backward compatibility - will be removed later)
-    Route::resource('bookings', BookingController::class)->except(['create', 'store']);
-    Route::post('bookings/{booking}/assign-partner', [BookingController::class, 'assignPartner'])->name('bookings.assign-partner');
-    Route::post('bookings/{booking}/cancel', [BookingController::class, 'cancel'])->name('bookings.cancel');
-    Route::get('bookings-statistics', [BookingController::class, 'statistics'])->name('bookings.statistics');
-
     // Reviews Management
     Route::resource('reviews', ReviewController::class)->only(['index', 'show', 'destroy']);
+    Route::get('reviews-statistics', [ReviewController::class, 'statistics'])->name('reviews.statistics');
     Route::post('reviews/{review}/update-response', [ReviewController::class, 'updateResponse'])->name('reviews.update-response');
     Route::post('reviews/moderate', [ReviewController::class, 'moderate'])->name('reviews.moderate');
-    Route::get('reviews-statistics', [ReviewController::class, 'statistics'])->name('reviews.statistics');
+
+    // Reports
+    Route::prefix('reports')->name('reports.')->group(function () {
+        Route::get('/', [ReportController::class, 'index'])->name('index');
+        Route::get('revenue', [ReportController::class, 'revenue'])->name('revenue');
+        Route::get('revenue/export', [ReportController::class, 'revenueCsv'])->name('revenue.export');
+        Route::get('delivery', [ReportController::class, 'delivery'])->name('delivery');
+        Route::get('delivery/export', [ReportController::class, 'deliveryCsv'])->name('delivery.export');
+    });
 
     // Notifications Management
     Route::prefix('notifications')->name('notifications.')->group(function () {
@@ -150,6 +149,17 @@ Route::prefix('admin')->name('admin.')->middleware(['admin.auth'])->group(functi
         Route::post('/', [PromotionController::class, 'store'])->name('store');
         Route::put('/{promotion}', [PromotionController::class, 'update'])->name('update');
         Route::post('/{promotion}/toggle', [PromotionController::class, 'toggle'])->name('toggle');
+    });
+
+    // Marketing: app banners shown in the customer app
+    Route::prefix('banners')->name('banners.')->group(function () {
+        Route::get('/', [BannerController::class, 'index'])->name('index');
+        Route::get('/create', [BannerController::class, 'create'])->name('create');
+        Route::post('/', [BannerController::class, 'store'])->name('store');
+        Route::get('/{banner}/edit', [BannerController::class, 'edit'])->name('edit');
+        Route::put('/{banner}', [BannerController::class, 'update'])->name('update');
+        Route::post('/{banner}/toggle', [BannerController::class, 'toggle'])->name('toggle');
+        Route::delete('/{banner}', [BannerController::class, 'destroy'])->name('destroy');
     });
 
     // Earnings Management

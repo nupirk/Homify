@@ -461,7 +461,11 @@ class PartnerController extends Controller
     /**
      * Get partners statistics.
      */
-    public function statistics(): View
+    /**
+     * Answers JSON like the other admin statistics endpoints - the page this
+     * used to point at was never created.
+     */
+    public function statistics(): \Illuminate\Http\JsonResponse
     {
         $stats = [
             'total_partners' => User::where('user_type', 'partner')->count(),
@@ -479,6 +483,6 @@ class PartnerController extends Controller
                 ->get(),
         ];
 
-        return view('admin.partners.statistics', compact('stats'));
+        return response()->json(['success' => true, 'data' => $stats]);
     }
 }

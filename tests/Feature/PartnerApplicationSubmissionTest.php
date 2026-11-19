@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Category;
 use App\Models\PartnerApplication;
 use App\Models\Service;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
@@ -97,6 +98,40 @@ class PartnerApplicationSubmissionTest extends TestCase
         $this->assertCount(1, $application->documents ?? []);
         $this->assertSame('identity', $application->documents[0]['type']);
         Storage::disk('private')->assertExists($application->documents[0]['file_path']);
+    }
+
+    /**
+     * The customer profile offers "Apply for partner" to people who already
+     * have an account. That submission must attach to the existing account -
+     * not collide with it, and not ask for a password it already has.
+     */
+    public function test_a_signed_in_customer_applies_without_a_second_account(): void
+    {
+        $customer = User::create([
+            'first_name' => 'Signed',
+            'last_name' => 'Customer',
+            'email' => 'signed.in@homify.test',
+            'phone' => self::PHONE,
+            'password' => bcrypt('secretPassword123'),
+            'user_type' => 'customer',
+            'is_active' => true,
+        ]);
+
+        $response = $this->actingAs($customer, 'sanctum')->postJson('/api/v1/partner/apply', $this->payload([
+            // The account's own email must win over whatever the form posts.
+            'email' => 'someone.else@homify.test',
+            'password' => null,
+            'password_confirmation' => null,
+        ]));
+
+        $response->assertCreated()->assertJsonPath('data.application_status', 'pending');
+
+        $application = PartnerApplication::where('email', $customer->email)->firstOrFail();
+        $this->assertSame('pending', $application->status);
+
+        // No second account, and the existing one is flagged for review.
+        $this->assertSame(1, User::count());
+        $this->assertSame('pending', $customer->fresh()->partner_application_status);
     }
 
     public function test_a_mismatched_document_list_is_rejected_with_a_readable_error(): void

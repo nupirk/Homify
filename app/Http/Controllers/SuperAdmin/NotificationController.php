@@ -265,6 +265,18 @@ class NotificationController extends Controller
                 return redirect()->route('admin.login')->with('error', 'Please log in to continue.');
             }
 
+            // The web form posts a date and a time separately, but the campaign
+            // stores one scheduled_at. Without this the request had no
+            // scheduled_at at all, so "Schedule for Later" was silently saved
+            // as an immediate campaign.
+            if ($request->input('schedule_type') === 'scheduled') {
+                $date = $request->input('scheduled_date');
+                $time = $request->input('scheduled_time');
+                if ($date && $time) {
+                    $request->merge(['scheduled_at' => trim($date . ' ' . $time)]);
+                }
+            }
+
             $validatedData = $request->validate([
                 'name' => 'required|string|max:100',
                 'template_id' => 'required|exists:notification_templates,template_id',
@@ -299,6 +311,13 @@ class NotificationController extends Controller
             ];
 
             $campaign = NotificationCampaign::create($campaignData);
+
+            // The API endpoint sends an immediate campaign right away. Nothing
+            // ever dispatches 'pending' campaigns, so the web form used to
+            // create a row that was never delivered.
+            if ($campaign->status === 'pending') {
+                $this->pushService->sendCampaign($campaign);
+            }
 
             return redirect()->route('admin.notifications.index')
                 ->with('success', 'Notification campaign created successfully!');

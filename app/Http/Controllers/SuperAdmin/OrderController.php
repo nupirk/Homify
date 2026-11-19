@@ -868,7 +868,16 @@ class OrderController extends Controller
             });
         }
 
-        $orders = $query->orderBy('created_at', 'desc')->get();
+        if ($request->filled('date_from') && $request->filled('date_to')) {
+            $query->whereBetween('created_at', [
+                $request->date_from . ' 00:00:00',
+                $request->date_to . ' 23:59:59'
+            ]);
+        }
+
+        // Cursor, not get(): the previous version pulled every matching order
+        // and its relations into memory before writing a single row.
+        $orders = $query->orderBy('created_at', 'desc')->cursor();
 
         $headers = [
             'Content-Type' => 'text/csv',
@@ -893,13 +902,19 @@ class OrderController extends Controller
             ]);
 
             // CSV data
+            $rowCount = 0;
+            $totalAmount = 0.0;
+
             foreach ($orders as $order) {
+                $rowCount++;
+                $totalAmount += (float) $order->total_amount;
+
                 $service = $order->orderItems->first()?->service;
                 $partner = $order->serviceRequests->first()?->partner;
 
                 fputcsv($file, [
                     $order->order_id,
-                    $order->user->name,
+                    $order->user?->name ?? 'Unknown',
                     $order->user->email,
                     ucfirst(str_replace('_', ' ', $order->status)),
                     ucfirst(str_replace('_', ' ', $order->payment_status)),
@@ -910,6 +925,19 @@ class OrderController extends Controller
                     $order->updated_at->format('Y-m-d H:i:s')
                 ]);
             }
+
+            fputcsv($file, [
+                'TOTAL',
+                $rowCount . ' orders',
+                '',
+                '',
+                '',
+                'Rs ' . number_format($totalAmount, 2),
+                '',
+                '',
+                '',
+                ''
+            ]);
 
             fclose($file);
         };

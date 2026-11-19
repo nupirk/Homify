@@ -1,4 +1,10 @@
-﻿<!-- Mobile Menu Overlay -->
+﻿@php
+    // Surfaced here so the badge is visible from every admin page, which is how
+    // applications were meant to be noticed in the first place.
+    $pendingApplications = \App\Models\PartnerApplication::whereIn('status', ['pending', 'under_review'])->count();
+@endphp
+
+<!-- Mobile Menu Overlay -->
 <div id="mobile-overlay" class="fixed inset-0 bg-slate-900/60 z-40 lg:hidden hidden"></div>
 
 <!-- Sidebar -->
@@ -47,6 +53,15 @@
                     <i class="fas fa-user-tie w-5 h-5 flex-shrink-0 mr-3"></i>
                     <span class="sidebar-text">Partners</span>
                 </a>
+                <a href="{{ route('admin.partner-applications.index') }}"
+                    class="group flex items-center px-3 py-2.5 text-sm rounded-lg transition-colors duration-150 {{ request()->routeIs('admin.partner-applications.*') ? 'bg-indigo-600 text-white font-medium' : 'text-slate-300 hover:bg-white/5 hover:text-white font-medium' }}">
+                    <i class="fas fa-user-check w-5 h-5 flex-shrink-0 mr-3"></i>
+                    <span class="sidebar-text flex-1">Partner Applications</span>
+                    @if ($pendingApplications > 0)
+                        <span
+                            class="bg-amber-500 text-white text-[10px] font-semibold rounded-full h-5 min-w-[20px] px-1.5 flex items-center justify-center flex-shrink-0 sidebar-text">{{ $pendingApplications > 99 ? '99+' : $pendingApplications }}</span>
+                    @endif
+                </a>
             </div>
         </div>
 
@@ -84,6 +99,11 @@
                     class="group flex items-center px-3 py-2.5 text-sm rounded-lg transition-colors duration-150 {{ request()->routeIs('admin.promotions.*') ? 'bg-indigo-600 text-white font-medium' : 'text-slate-300 hover:bg-white/5 hover:text-white font-medium' }}">
                     <i class="fas fa-ticket-alt w-5 h-5 flex-shrink-0 mr-3"></i>
                     <span class="sidebar-text">Discount Offers</span>
+                </a>
+                <a href="{{ route('admin.banners.index') }}"
+                    class="group flex items-center px-3 py-2.5 text-sm rounded-lg transition-colors duration-150 {{ request()->routeIs('admin.banners.*') ? 'bg-indigo-600 text-white font-medium' : 'text-slate-300 hover:bg-white/5 hover:text-white font-medium' }}">
+                    <i class="fas fa-images w-5 h-5 flex-shrink-0 mr-3"></i>
+                    <span class="sidebar-text">Banners</span>
                 </a>
             </div>
         </div>
@@ -151,6 +171,30 @@
             </div>
         </div>
 
+        <!-- Reports Section -->
+        <div class="mt-6">
+            <div class="px-3 sidebar-text sidebar-divider">
+                <p class="text-xs font-medium uppercase tracking-wide text-slate-500">Reports</p>
+            </div>
+            <div class="mt-2 px-3 space-y-1">
+                <a href="{{ route('admin.reports.index') }}"
+                    class="group flex items-center px-3 py-2.5 text-sm rounded-lg transition-colors duration-150 {{ request()->routeIs('admin.reports.index') ? 'bg-indigo-600 text-white font-medium' : 'text-slate-300 hover:bg-white/5 hover:text-white font-medium' }}">
+                    <i class="fas fa-file-alt w-5 h-5 flex-shrink-0 mr-3"></i>
+                    <span class="sidebar-text">All Reports</span>
+                </a>
+                <a href="{{ route('admin.reports.revenue') }}"
+                    class="group flex items-center px-3 py-2.5 text-sm rounded-lg transition-colors duration-150 {{ request()->routeIs('admin.reports.revenue*') ? 'bg-indigo-600 text-white font-medium' : 'text-slate-300 hover:bg-white/5 hover:text-white font-medium' }}">
+                    <i class="fas fa-coins w-5 h-5 flex-shrink-0 mr-3"></i>
+                    <span class="sidebar-text">Revenue</span>
+                </a>
+                <a href="{{ route('admin.reports.delivery') }}"
+                    class="group flex items-center px-3 py-2.5 text-sm rounded-lg transition-colors duration-150 {{ request()->routeIs('admin.reports.delivery*') ? 'bg-indigo-600 text-white font-medium' : 'text-slate-300 hover:bg-white/5 hover:text-white font-medium' }}">
+                    <i class="fas fa-paper-plane w-5 h-5 flex-shrink-0 mr-3"></i>
+                    <span class="sidebar-text">Notification Delivery</span>
+                </a>
+            </div>
+        </div>
+
         <!-- System Section -->
         <div class="mt-6">
             <div class="px-3 sidebar-text sidebar-divider">
@@ -171,11 +215,6 @@
                     class="group flex items-center px-3 py-2.5 text-sm rounded-lg transition-colors duration-150 {{ request()->routeIs('admin.login-activity.*') ? 'bg-indigo-600 text-white font-medium' : 'text-slate-300 hover:bg-white/5 hover:text-white font-medium' }}">
                     <i class="fas fa-user-shield w-5 h-5 flex-shrink-0 mr-3"></i>
                     <span class="sidebar-text">Login Activity</span>
-                </a>
-                <a href="#"
-                    class="group flex items-center px-3 py-2.5 text-sm rounded-lg transition-colors duration-150 text-slate-300 hover:bg-white/5 hover:text-white font-medium">
-                    <i class="fas fa-cog w-5 h-5 flex-shrink-0 mr-3"></i>
-                    <span class="sidebar-text">Settings</span>
                 </a>
             </div>
         </div>

@@ -484,17 +484,17 @@
                     }
                 });
 
-                // Validate scheduled date if schedule type is scheduled
-                const scheduleType = document.getElementById('schedule_type').value;
-                const scheduledAt = document.getElementById('scheduled_at');
-                if (scheduleType === 'scheduled' && scheduledAt && !scheduledAt.value) {
-                    const errorEl = document.getElementById('scheduled_at-error');
-                    if (errorEl) {
-                        errorEl.textContent = 'Scheduled date is required when schedule type is scheduled';
-                        errorEl.classList.remove('hidden');
-                    }
+                // Validate the date/time pair when scheduling. The form posts
+                // scheduled_date + scheduled_time; there is no #schedule_type
+                // element (it is a radio group), so read the checked one.
+                const scheduleTypeEl = document.querySelector('input[name="schedule_type"]:checked');
+                const scheduleType = scheduleTypeEl ? scheduleTypeEl.value : 'immediate';
+                const scheduledDate = document.getElementById('scheduled_date');
+                const scheduledTime = document.getElementById('scheduled_time');
+                if (scheduleType === 'scheduled' && (!scheduledDate || !scheduledDate.value || !scheduledTime ||
+                        !scheduledTime.value)) {
                     hasErrors = true;
-                    errorMessages.push('Scheduled date');
+                    errorMessages.push('Scheduled date and time');
                 }
 
                 if (hasErrors) {

@@ -55,7 +55,7 @@ class DashboardController extends Controller
         $stats = [
             'total_customers' => User::where('user_type', 'customer')->count(),
             'total_partners' => User::where('user_type', 'partner')->count(),
-            'partners' => PartnerProfile::all()->count(),
+            'partners' => PartnerProfile::count(),
             'total_orders' => Order::count(),
             'pending_orders' => Order::where('status', 'pending')->count(),
             'completed_orders' => Order::where('status', 'completed')->count(),
@@ -115,18 +115,23 @@ class DashboardController extends Controller
         return round((($currentMonth - $lastMonth) / $lastMonth) * 100);
     }
 
+    /**
+     * Growth of the same figure the card shows: platform fees plus tax owed.
+     * Reading it from `transactions` measured gross customer payments, so the
+     * percentage described a different number from the total next to it.
+     */
     private function calculateRevenueGrowth()
     {
-        $currentMonth = Transaction::where('transaction_type', 'payment')
-            ->where('status', 'completed')
-            ->whereMonth('created_at', now()->month)
-            ->whereYear('created_at', now()->year)
-            ->sum('amount');
-        $lastMonth = Transaction::where('transaction_type', 'payment')
-            ->where('status', 'completed')
-            ->whereMonth('created_at', now()->subMonth()->month)
-            ->whereYear('created_at', now()->subMonth()->year)
-            ->sum('amount');
+        $revenueFor = function ($month) {
+            return DB::table('ledger_entries')
+                ->whereIn('type', ['PLATFORM_FEE', 'TAX_PAYABLE'])
+                ->whereMonth('created_at', $month->month)
+                ->whereYear('created_at', $month->year)
+                ->sum('amount');
+        };
+
+        $currentMonth = $revenueFor(now());
+        $lastMonth = $revenueFor(now()->subMonth());
 
         if ($lastMonth == 0) return $currentMonth > 0 ? 100 : 0;
 

@@ -87,37 +87,6 @@ class EarningController extends Controller
     /**
      * Show earning statistics dashboard.
      */
-    public function dashboard(Request $request): View
-    {
-        $days = $request->get('days', 30);
-        $startDate = now()->subDays($days);
-
-        // Recent earnings data
-        $recentEarnings = LedgerEntry::where('type', 'PARTNER_EARNING')
-            ->where('created_at', '>=', $startDate)
-            ->selectRaw('
-                DATE(created_at) as date,
-                SUM(amount) as daily_earnings,
-                COUNT(*) as daily_transactions
-            ')
-            ->groupBy('date')
-            ->orderBy('date')
-            ->get();
-
-        // Summary statistics
-        $stats = [
-            'total_earnings' => LedgerEntry::where('type', 'PARTNER_EARNING')->sum('amount'),
-            'total_transactions' => LedgerEntry::where('type', 'PARTNER_EARNING')->count(),
-            'platform_revenue' => LedgerEntry::where('type', 'PLATFORM_FEE')->sum('amount'),
-            'period_earnings' => LedgerEntry::where('type', 'PARTNER_EARNING')
-                ->where('created_at', '>=', $startDate)->sum('amount'),
-            'period_transactions' => LedgerEntry::where('type', 'PARTNER_EARNING')
-                ->where('created_at', '>=', $startDate)->count(),
-        ];
-
-        return view('admin.earnings.dashboard', compact('recentEarnings', 'stats', 'days'));
-    }
-
     /**
      * Show partner-specific earnings.
      */
@@ -221,7 +190,7 @@ class EarningController extends Controller
         $rule = CommissionRule::findOrFail($ruleId);
         $services = Service::all();
 
-        return view('admin.earnings.commission-rules-edit', compact('rule', 'services'));
+        return view('admin.earnings.edit-commission-rule', compact('rule', 'services'));
     }
 
     /**

@@ -7,25 +7,33 @@
                 <i class="fas fa-bars text-base"></i>
             </button>
 
-            <div class="flex-1 max-w-xs">
+            <form method="GET" action="{{ route('admin.orders.index') }}" class="flex-1 max-w-xs">
                 <div class="relative">
-                    <input type="text" placeholder="Search..."
+                    <input type="search" name="search" value="{{ request()->routeIs('admin.orders.*') ? request('search') : '' }}"
+                        placeholder="Search orders..."
                         class="w-full pl-9 pr-3 py-1.5 bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 text-sm text-slate-900 placeholder-slate-400 min-w-0 transition-colors duration-150">
                     <i class="fas fa-search absolute left-3 top-2 text-slate-400 text-xs"></i>
                 </div>
-            </div>
+            </form>
         </div>
 
         <div class="flex items-center space-x-1.5 flex-shrink-0">
-            <!-- Notifications -->
-            <div class="relative">
-                <button
-                    class="relative inline-flex items-center justify-center text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-lg p-2 transition-colors duration-150">
-                    <i class="fas fa-bell text-base"></i>
+            <!-- Notification manager, with the number of delivery failures that
+                 actually need attention instead of a fixed "3". -->
+            @php
+                $failedSends = \App\Models\NotificationLog::where('status', 'failed')
+                    ->where('created_at', '>=', now()->subDay())
+                    ->count();
+            @endphp
+            <a href="{{ route('admin.notifications.index') }}"
+                title="{{ $failedSends }} failed notification(s) in the last 24 hours"
+                class="relative inline-flex items-center justify-center text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-lg p-2 transition-colors duration-150">
+                <i class="fas fa-bell text-base"></i>
+                @if ($failedSends > 0)
                     <span
-                        class="absolute -top-0.5 -right-0.5 bg-rose-600 text-white text-[10px] font-medium rounded-full h-4 min-w-[16px] px-1 flex items-center justify-center ring-2 ring-white">3</span>
-                </button>
-            </div>
+                        class="absolute -top-0.5 -right-0.5 bg-rose-600 text-white text-[10px] font-medium rounded-full h-4 min-w-[16px] px-1 flex items-center justify-center ring-2 ring-white">{{ $failedSends > 9 ? '9+' : $failedSends }}</span>
+                @endif
+            </a>
 
             <!-- User Profile -->
             <div class="relative">

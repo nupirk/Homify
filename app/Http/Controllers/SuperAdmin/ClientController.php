@@ -74,82 +74,6 @@ class ClientController extends Controller
     }
 
     /**
-     * Show the form for creating a new user.
-     */
-    public function create(): View
-    {
-        return view('admin.clients.create');
-    }
-
-    /**
-     * Store a newly created user.
-     */
-    public function store(Request $request): RedirectResponse
-    {
-        try {
-            $request->validate([
-                'first_name' => 'required|string|max:50',
-                'last_name' => 'required|string|max:50',
-                'email' => 'required|email|unique:users,email',
-                'phone' => 'required|string|unique:users,phone',
-                'password' => 'required|string|min:8|confirmed',
-                'avatar' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
-                // Address fields
-                'address_line_1' => 'nullable|string|max:255',
-                'address_line_2' => 'nullable|string|max:255',
-                'city' => 'nullable|string|max:50',
-                'state' => 'nullable|string|max:50',
-                'postal_code' => 'nullable|string|max:20',
-                'country' => 'nullable|string|max:50',
-                'address_type' => 'nullable|in:home,work,other',
-            ]);
-
-            // Handle avatar upload
-            $avatarUrl = null;
-            if ($request->hasFile('avatar')) {
-                $avatarUrl = '/storage/' . $request->file('avatar')->store('clients/avatars', 'public');
-            }
-
-            $user = User::create([
-                'first_name' => $request->first_name,
-                'last_name' => $request->last_name,
-                'email' => $request->email,
-                'phone' => $request->phone,
-                'password' => Hash::make($request->password),
-                'user_type' => 'customer',
-                'is_active' => true,
-                'email_verified_at' => now(),
-                'avatar_url' => $avatarUrl,
-            ]);
-
-            // Create address if provided
-            if ($request->filled('address_line_1')) {
-                $user->addresses()->create([
-                    'address_line_1' => $request->address_line_1,
-                    'address_line_2' => $request->address_line_2,
-                    'city' => $request->city,
-                    'state' => $request->state,
-                    'postal_code' => $request->postal_code,
-                    'country' => $request->country ?? 'USA',
-                    'address_type' => $request->address_type ?? 'home',
-                    'is_default' => true,
-                ]);
-            }
-
-            return redirect()->route('admin.clients.index')
-                ->with('success', 'Customer "' . $user->full_name . '" created successfully!');
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            return redirect()->back()
-                ->withErrors($e->validator)
-                ->withInput();
-        } catch (\Exception $e) {
-            return redirect()->back()
-                ->with('error', 'Failed to create customer. Please try again.')
-                ->withInput();
-        }
-    }
-
-    /**
      * Display the specified user.
      */
     public function show(User $client): View
@@ -291,7 +215,11 @@ class ClientController extends Controller
     /**
      * Get clients statistics.
      */
-    public function statistics(): View
+    /**
+     * The sidebar has no statistics page, so this answers JSON like the other
+     * admin statistics endpoints instead of rendering a view that never existed.
+     */
+    public function statistics(): \Illuminate\Http\JsonResponse
     {
         $stats = [
             'total_customers' => User::where('user_type', 'customer')->count(),
@@ -314,6 +242,6 @@ class ClientController extends Controller
                 ->get(),
         ];
 
-        return view('admin.clients.statistics', compact('stats'));
+        return response()->json(['success' => true, 'data' => $stats]);
     }
 }

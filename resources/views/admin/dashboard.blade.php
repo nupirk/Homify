@@ -176,10 +176,10 @@
 
     <!-- Charts and Tables -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
-        <!-- Booking Trends Chart -->
+        <!-- Order Trends Chart -->
         <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
             <div class="flex items-center justify-between mb-4">
-                <h3 class="text-sm font-semibold text-slate-900">Booking Trends (Last 30 Days)</h3>
+                <h3 class="text-sm font-semibold text-slate-900">Order Trends (Last 30 Days)</h3>
                 <div class="flex items-center space-x-2">
                     <div class="w-2.5 h-2.5 bg-indigo-600 rounded-full"></div>
                     <span class="text-xs text-slate-500">Bookings</span>

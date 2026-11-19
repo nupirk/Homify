@@ -33,7 +33,7 @@
                     </div>
                     <div class="ml-4">
                         <p class="text-sm font-medium text-gray-500">Templates</p>
-                        <p class="text-2xl font-bold text-gray-900">{{ $totalTemplates ?? 0 }}</p>
+                        <p id="total-templates" class="text-2xl font-bold text-gray-900">{{ $totalTemplates ?? 0 }}</p>
                     </div>
                 </div>
             </div>
@@ -45,7 +45,7 @@
                     </div>
                     <div class="ml-4">
                         <p class="text-sm font-medium text-gray-500">Active Campaigns</p>
-                        <p class="text-2xl font-bold text-gray-900">{{ $activeCampaigns ?? 0 }}</p>
+                        <p id="active-campaigns" class="text-2xl font-bold text-gray-900">{{ $activeCampaigns ?? 0 }}</p>
                     </div>
                 </div>
             </div>
@@ -57,7 +57,7 @@
                     </div>
                     <div class="ml-4">
                         <p class="text-sm font-medium text-gray-500">Sent Today</p>
-                        <p class="text-2xl font-bold text-gray-900">{{ $sentToday ?? 0 }}</p>
+                        <p id="sent-today" class="text-2xl font-bold text-gray-900">{{ $sentToday ?? 0 }}</p>
                     </div>
                 </div>
             </div>
@@ -69,7 +69,7 @@
                     </div>
                     <div class="ml-4">
                         <p class="text-sm font-medium text-gray-500">Failed Today</p>
-                        <p class="text-2xl font-bold text-gray-900">{{ $failedToday ?? 0 }}</p>
+                        <p id="failed-today" class="text-2xl font-bold text-gray-900">{{ $failedToday ?? 0 }}</p>
                     </div>
                 </div>
             </div>
@@ -216,10 +216,9 @@
                             <select id="target-type"
                                 class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                                 <option value="all_users">All Users</option>
+                                <option value="all_customers">All Customers</option>
                                 <option value="all_partners">All Partners</option>
-                                <option value="active_partners">Active Partners</option>
-                                <option value="negative_balance_partners">Negative Balance Partners</option>
-                                <option value="custom">Custom Selection</option>
+                                <option value="partners_with_negative_balance">Negative Balance Partners</option>
                             </select>
                         </div>
 
@@ -291,9 +290,9 @@
 
             // Initialize page
             document.addEventListener('DOMContentLoaded', function() {
-                // Templates are now loaded server-side, no need for API calls
-                // Only load campaigns and stats if needed
-                // loadCampaigns(); // TODO: Implement campaigns loading if needed
+                // Templates are rendered server-side; the campaigns table and
+                // the counters below come from the API.
+                loadCampaigns();
             });
 
             // Load dashboard statistics
@@ -301,14 +300,15 @@
             async function loadDashboard() {
                     try {
                         const response = await fetch('/api/v1/admin/notifications/dashboard', {
-                                const data = await response.json();
+                            headers: { 'Accept': 'application/json' }
+                        });
+                        const data = await response.json();
 
                                 if (data.success) {
                                     document.getElementById('total-templates').textContent = data.data.stats
                                         .total_templates;
                                     document.getElementById('active-campaigns').textContent = data.data.stats
-                                        .pending_campaigns + data
-                                        .data.stats.scheduled_campaigns;
+                                        .pending_campaigns + data.data.stats.scheduled_campaigns;
                                     document.getElementById('sent-today').textContent = data.data.stats
                                         .successful_sends_today;
                                     document.getElementById('failed-today').textContent = data.data.stats
@@ -328,7 +328,7 @@
 
                                 if (data.success) {
                                     const tbody = document.getElementById('templates-table');
-                                    tbody.innerHTML = data.data.map(template => `
+                                    tbody.innerHTML = (data.data.data || data.data).map(template => `
                         <tr>
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${template.name}</td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${template.type}</td>
@@ -358,7 +358,7 @@
 
                                 if (data.success) {
                                     const tbody = document.getElementById('campaigns-table');
-                                    tbody.innerHTML = data.data.map(campaign => `
+                                    tbody.innerHTML = (data.data.data || data.data).map(campaign => `
                         <tr>
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${campaign.name}</td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${campaign.template?.name || 'N/A'}</td>
@@ -367,7 +367,7 @@
                                     ${campaign.status}
                                 </span>
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${campaign.target_count || 0}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${campaign.total_recipients || 0}</td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                 ${campaign.scheduled_at ? new Date(campaign.scheduled_at).toLocaleDateString() : 'Immediate'}
                             </td>
@@ -385,9 +385,12 @@
                         function getStatusClass(status) {
                             switch (status) {
                                 case 'pending':
+                                case 'scheduled':
                                     return 'bg-yellow-100 text-yellow-800';
+                                case 'sending':
                                 case 'processing':
                                     return 'bg-blue-100 text-blue-800';
+                                case 'sent':
                                 case 'completed':
                                     return 'bg-green-100 text-green-800';
                                 case 'failed':
@@ -426,7 +429,7 @@
                                 if (data.success) {
                                     showNotificationModal('success', 'Success', 'Notification sent successfully!');
                                     document.getElementById('quick-send-form').reset();
-                                    loadDashboardStats();
+                                    loadDashboard();
                                 } else {
                                     showNotificationModal('error', 'Error', 'Error sending notification: ' + data
                                         .message);
@@ -455,7 +458,7 @@
                                     if (data.success) {
                                         showNotificationModal('success', 'Success', 'Template deleted successfully!');
                                         loadTemplates();
-                                        loadDashboardStats();
+                                        loadDashboard();
                                     } else {
                                         showNotificationModal('error', 'Error', 'Error deleting template: ' + data.message);
                                     }

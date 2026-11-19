@@ -93,6 +93,18 @@ class PartnerApplicationController extends Controller
                 $requestData['references'] = json_decode($requestData['references'], true);
             }
 
+            // A signed-in customer applying from the app already owns an account,
+            // so this must not create a second one: the application is keyed on
+            // the account's email and the customer is never asked for a password
+            // they already have.
+            $applicant = Auth::guard('sanctum')->user() ?? $request->user();
+            $usingExistingAccount = $applicant !== null;
+
+            if ($usingExistingAccount) {
+                $request->merge(['email' => $applicant->email]);
+                $requestData['email'] = $applicant->email;
+            }
+
             // Detect re-application: an existing REJECTED application for this email
             // means the user may submit a fresh application (e.g. via "Apply Again")
             $email = $requestData['email'] ?? null;
@@ -103,7 +115,18 @@ class PartnerApplicationController extends Controller
             $emailRules = ['required', 'email', 'max:255'];
             $phoneRules = ['required', 'string', 'max:20'];
 
-            if ($isReapply) {
+            if ($usingExistingAccount) {
+                // The customer's own row is allowed to hold this email/phone; a
+                // second application is only allowed when the previous one was
+                // rejected (which the reapply branch below handles).
+                $emailRules[] = Rule::unique('users', 'email')->ignore($applicant->user_id, 'user_id');
+                $phoneRules[] = Rule::unique('users', 'phone')->ignore($applicant->user_id, 'user_id');
+
+                if (! $isReapply) {
+                    $emailRules[] = Rule::unique('partner_applications', 'email');
+                    $phoneRules[] = Rule::unique('partner_applications', 'phone');
+                }
+            } elseif ($isReapply) {
                 // Allow the same email/phone (they belong to the rejected application's user)
                 $emailRules[] = Rule::unique('users', 'email')->ignore($existingUser?->user_id, 'user_id');
                 $phoneRules[] = Rule::unique('users', 'phone')->ignore($existingUser?->user_id, 'user_id');
@@ -114,13 +137,17 @@ class PartnerApplicationController extends Controller
                 $phoneRules[] = Rule::unique('partner_applications', 'phone');
             }
 
+            $passwordRules = $usingExistingAccount
+                ? ['nullable', 'string', 'min:8']
+                : ['required', 'string', 'min:8', 'confirmed'];
+
             $validator = Validator::make($requestData, [
                 // Personal Information
                 'first_name' => 'required|string|max:255',
                 'last_name' => 'required|string|max:255',
                 'email' => $emailRules,
                 'phone' => $phoneRules,
-                'password' => 'required|string|min:8|confirmed',
+                'password' => $passwordRules,
 
                 // Address Information
                 'address' => 'required|string|max:500',
@@ -372,13 +399,31 @@ class PartnerApplicationController extends Controller
             }
 
             // Also create a user account for login purposes
-            if ($isReapply && $existingUser) {
+            if ($usingExistingAccount) {
+                // The account already exists: mark it as pending review and keep
+                // its password untouched (the form does not collect one).
+                $user = $applicant;
+                $applicant->update([
+                    'partner_application_status' => 'pending',
+                    'partner_application_submitted_at' => now(),
+                    'partner_application_reviewed_at' => null,
+                    'partner_application_reviewed_by' => null,
+                    'partner_application_rejection_reason' => null,
+                ]);
+
+                Log::info('Partner application linked to existing account', [
+                    'user_id' => $user->user_id,
+                    'application_id' => $application->application_id
+                ]);
+            } elseif ($isReapply && $existingUser) {
                 // Reuse the existing user account, refresh password and status
                 $existingUser->update([
                     'first_name' => $request->first_name,
                     'last_name' => $request->last_name,
                     'phone' => $request->phone,
-                    'password' => Hash::make($request->password),
+                    ...($request->filled('password')
+                        ? ['password' => Hash::make($request->password)]
+                        : []),
                     'partner_application_status' => 'pending',
                     'partner_application_submitted_at' => now(),
                     'partner_application_reviewed_at' => null,

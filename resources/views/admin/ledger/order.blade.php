@@ -78,11 +78,11 @@
             <div class="d-sm-flex align-items-center justify-content-between mb-4">
                 <h1 class="h3 mb-0 text-gray-800">Order Ledger: #{{ $bookingId }}</h1>
                 <div>
-                    <a href="{{ route('super-admin.ledger.export', ['booking_id' => $bookingId]) }}"
+                    <a href="{{ route('admin.ledger.export', ['booking_id' => $bookingId]) }}"
                         class="btn btn-success btn-sm">
                         <i class="fas fa-download"></i> Export CSV
                     </a>
-                    <a href="{{ route('super-admin.ledger.index') }}" class="btn btn-secondary btn-sm">
+                    <a href="{{ route('admin.ledger.index') }}" class="btn btn-secondary btn-sm">
                         <i class="fas fa-arrow-left"></i> Back to List
                     </a>
                 </div>
@@ -327,7 +327,7 @@
                                                 </td>
                                                 <td>
                                                     @if ($entry->user)
-                                                        <a href="{{ route('super-admin.ledger.user', $entry->user_id) }}"
+                                                        <a href="{{ route('admin.ledger.user', $entry->user_id) }}"
                                                             class="text-primary">
                                                             {{ $entry->user->first_name }} {{ $entry->user->last_name }}
                                                         </a>
@@ -370,7 +370,7 @@
                                                     <small>{{ Str::limit($entry->narration, 50) }}</small>
                                                 </td>
                                                 <td>
-                                                    <a href="{{ route('super-admin.ledger.show', $entry->id) }}"
+                                                    <a href="{{ route('admin.ledger.show', $entry->id) }}"
                                                         class="btn btn-sm btn-outline-primary">
                                                         <i class="fas fa-eye"></i>
                                                     </a>

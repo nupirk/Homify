@@ -212,16 +212,6 @@
                         <h3 class="text-lg font-medium text-gray-900">Actions</h3>
                     </div>
                     <div class="p-6 space-y-3">
-                        <form action="{{ route('admin.earnings.recalculate', $earning->earning_id) }}" method="POST">
-                            @csrf
-                            <button type="submit"
-                                onclick="return confirm('Are you sure you want to recalculate this earning? This will update the amounts based on current commission rules.')"
-                                class="w-full inline-flex items-center justify-center px-4 py-2 bg-orange-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-orange-700 transition">
-                                <i class="fas fa-calculator mr-2"></i>
-                                Recalculate Earning
-                            </button>
-                        </form>
-
                         @if ($earning->order)
                             <a href="{{ route('admin.orders.show', $earning->order) }}"
                                 class="w-full inline-flex items-center justify-center px-4 py-2 bg-blue-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-blue-700 transition">

@@ -103,7 +103,7 @@ class LedgerController extends Controller
                 ->get();
         }
 
-        return view('super-admin.ledger.show', compact('ledgerEntry', 'relatedEntries'));
+        return view('admin.ledger.show', compact('ledgerEntry', 'relatedEntries'));
     }
 
     public function userBalance(Request $request)
@@ -238,7 +238,7 @@ class LedgerController extends Controller
             ->limit(12)
             ->get();
 
-        return view('super-admin.ledger.user', compact('user', 'ledgerEntries', 'currentBalance', 'monthlyStats'));
+        return view('admin.ledger.user', compact('user', 'ledgerEntries', 'currentBalance', 'monthlyStats'));
     }
 
     public function export(Request $request)

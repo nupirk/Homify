@@ -141,9 +141,19 @@ sudo nginx -t && sudo systemctl reload nginx
 ```
 
 `deploy/nginx.conf` already denies dotfiles (`.env`, `.git`), sets
-`client_max_body_size 20M` for KYC uploads and points FPM at
+`client_max_body_size 40M` for KYC uploads and points FPM at
 `/run/php/php8.3-fpm.sock`. Adjust the socket if you installed another PHP
 version.
+
+Verify the running server actually has that ceiling - nginx's built-in default
+is `1M`, so an old or hand-written site file rejects even a small submission
+with an HTML `413` before Laravel ever sees the request:
+
+```bash
+# 2MB body: 413 means the limit was never raised on this host
+head -c 2000000 /dev/zero | tr '\0' 'x' | \
+  curl -s -o /dev/null -w '%{http_code}\n' --data-binary @- https://api.example.com/up
+```
 
 ### Real client IP (Cloudflare in front)
 
