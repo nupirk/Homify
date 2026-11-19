@@ -168,7 +168,8 @@ class ReferralService
             ->where('p.is_active', true)
             ->where('p.valid_from', '<=', now())
             ->where('p.valid_until', '>=', now())
-            ->whereRaw('(p.usage_limit IS NULL OR p.usage_count < p.usage_limit)')
+            // 0 is the admin form's "no cap" value, not a sold-out code.
+            ->whereRaw('(p.usage_limit IS NULL OR p.usage_limit = 0 OR p.usage_count < p.usage_limit)')
             ->orderByDesc('p.created_at')
             ->get()
             ->map(fn ($p) => [

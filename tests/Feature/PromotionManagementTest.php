@@ -272,6 +272,43 @@ class PromotionManagementTest extends TestCase
         $this->assertEquals(300, (float) $promotion->discount_amount);
     }
 
+    public function test_admin_can_scope_a_promo_to_one_service(): void
+    {
+        $category = \App\Models\Category::create(['name' => 'Cleaning', 'is_active' => true]);
+        $service = \App\Models\Service::create([
+            'category_id' => $category->category_id,
+            'name' => 'Deep Cleaning',
+            'description' => 'Deep clean',
+            'is_active' => true,
+        ]);
+
+        Sanctum::actingAs($this->admin, ['*']);
+
+        $res = $this->postJson('/api/v1/admin/promotions', $this->validPayload([
+            'service_id' => $service->service_id,
+        ]));
+
+        $res->assertCreated()
+            ->assertJsonPath('data.promotion.service_id', $service->service_id)
+            ->assertJsonPath('data.promotion.service_name', 'Deep Cleaning');
+        $this->assertDatabaseHas('promotions', [
+            'promo_code' => 'WINTER20',
+            'service_id' => $service->service_id,
+        ]);
+
+        // Unknown services are refused.
+        $this->postJson('/api/v1/admin/promotions', $this->validPayload([
+            'promo_code' => 'BADID',
+            'service_id' => 99999,
+        ]))->assertStatus(422)->assertJsonValidationErrors(['service_id']);
+
+        // Zero is not a discount.
+        $this->postJson('/api/v1/admin/promotions', $this->validPayload([
+            'promo_code' => 'ZERO',
+            'discount_percent' => 0,
+        ]))->assertStatus(422)->assertJsonValidationErrors(['discount_percent']);
+    }
+
     public function test_admin_promotion_routes_reject_customers_and_guests(): void
     {
         Sanctum::actingAs($this->customer, ['*']);

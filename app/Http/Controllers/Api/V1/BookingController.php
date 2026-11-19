@@ -268,6 +268,11 @@ class BookingController extends Controller
                     'existing_order_id' => $existingOrder->order_id,
                 ]);
 
+                // A promo sent with the duplicate must not be swallowed: the
+                // order that already exists decides the money, and if it was
+                // created without the code the customer has to be told.
+                $requestedPromo = strtoupper(trim((string) $request->input('promo_code')));
+
                 // The duplicate response must mirror the EXISTING order's
                 // payment method, never the incoming request's: a prepay
                 // (online) order must keep being asked to pay, and only a
@@ -278,6 +283,12 @@ class BookingController extends Controller
                         'duplicate' => true,
                         'order_id' => $existingOrder->order_id,
                         'payment_method' => 'pas',
+                        'promo_code' => $existingOrder->promo_code,
+                        'discount_amount' => (float) $existingOrder->discount_amount,
+                        'total_amount' => (float) $existingOrder->total_amount,
+                        'promo_note' => $requestedPromo !== '' && !$existingOrder->promo_code
+                            ? 'Promo code not applied: a booking for this slot already exists without it.'
+                            : null,
                         'message' => 'Booking created successfully. Payment will be collected after service completion.',
                         'status' => $existingOrder->fresh()->status,
                         'note' => 'For cash collection, commission is deducted from partner balance after customer confirmation.'
@@ -308,6 +319,12 @@ class BookingController extends Controller
                     'duplicate' => true,
                     'order_id' => $existingOrder->order_id,
                     'payment_method' => 'online',
+                    'promo_code' => $existingOrder->promo_code,
+                    'discount_amount' => (float) $existingOrder->discount_amount,
+                    'total_amount' => (float) $existingOrder->total_amount,
+                    'promo_note' => $requestedPromo !== '' && !$existingOrder->promo_code
+                        ? 'Promo code not applied: a booking for this slot already exists without it.'
+                        : null,
                     'payment_url' => rtrim(config('payment.gateways.esewa.form_url') ?? config('payment.gateways.esewa.base_url', 'https://uat.esewa.com.np'), '/') . '/api/epay/main/v2/form',
                     'payload' => $paymentPayload,
                     'message' => 'Booking created successfully. Proceed to payment.'
@@ -318,6 +335,9 @@ class BookingController extends Controller
             $totalSubtotal = 0;
             $serviceDetails = [];
             $orderItems = [];
+            // Same lines in the shape the promo engine needs to test a
+            // service-scoped code against the right part of the cart.
+            $promoItems = [];
 
             foreach ($request->services as $serviceData) {
                 // Get the service to calculate pricing
@@ -344,6 +364,11 @@ class BookingController extends Controller
                     'unit_price' => $unitPrice,
                     'total_price' => $serviceSubtotal,
                 ];
+
+                $promoItems[] = [
+                    'service_id' => (int) $serviceData['service_id'],
+                    'subtotal' => $serviceSubtotal,
+                ];
             }
 
             // Promo code: validate against the gross subtotal before tax.
@@ -355,7 +380,7 @@ class BookingController extends Controller
             $promoCode = trim((string) $request->input('promo_code'));
             if ($promoCode !== '') {
                 try {
-                    $promoResult = PromoService::validate($request->user(), $promoCode, (float) $totalSubtotal);
+                    $promoResult = PromoService::validate($request->user(), $promoCode, (float) $totalSubtotal, $promoItems);
                     $appliedPromotion = $promoResult['promotion'];
                     $discountAmount = $promoResult['discount'];
                 } catch (PromoException $e) {

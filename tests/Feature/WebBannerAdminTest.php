@@ -48,6 +48,28 @@ class WebBannerAdminTest extends TestCase
         ], $overrides);
     }
 
+    public function test_service_scope_round_trips_through_the_blade_form(): void
+    {
+        $category = \App\Models\Category::create(['name' => 'Cleaning', 'is_active' => true]);
+        $service = \App\Models\Service::create([
+            'category_id' => $category->category_id,
+            'name' => 'Deep Cleaning',
+            'description' => 'Deep clean',
+            'is_active' => true,
+        ]);
+
+        $this->actingAs($this->admin())
+            ->post(route('admin.banners.store'), $this->payload([
+                'service_id' => (string) $service->service_id,
+            ]))
+            ->assertRedirect(route('admin.banners.index'));
+
+        $this->assertDatabaseHas('banners', [
+            'title' => 'Monsoon cleaning',
+            'service_id' => $service->service_id,
+        ]);
+    }
+
     public function test_rejects_non_numeric_service_id(): void
     {
         $this->actingAs($this->admin())

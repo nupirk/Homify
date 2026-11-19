@@ -23,13 +23,20 @@ class PromotionController extends Controller
         $data = $request->validate([
             'code' => 'required|string|max:20',
             'subtotal' => 'required|numeric|min:0',
+            // Optional cart lines: a service-scoped code needs them to know
+            // which part of the cart it may discount. Older builds send only
+            // `subtotal` and keep working for unscoped codes.
+            'items' => 'nullable|array',
+            'items.*.service_id' => 'required_with:items|integer',
+            'items.*.subtotal' => 'required_with:items|numeric|min:0',
         ]);
 
         try {
             $result = PromoService::validate(
                 $request->user(),
                 $data['code'],
-                (float) $data['subtotal']
+                (float) $data['subtotal'],
+                $data['items'] ?? null
             );
         } catch (PromoException $e) {
             return response()->json([
@@ -45,6 +52,7 @@ class PromotionController extends Controller
             'success' => true,
             'valid' => true,
             'discount_amount' => $result['discount'],
+            'eligible_subtotal' => $result['eligible_subtotal'],
             'promotion' => [
                 'promotion_id' => $promotion->promotion_id,
                 'promo_code' => $promotion->promo_code,
@@ -53,6 +61,8 @@ class PromotionController extends Controller
                 'discount_percent' => $promotion->discount_percent !== null ? (float) $promotion->discount_percent : null,
                 'discount_amount' => $promotion->discount_amount !== null ? (float) $promotion->discount_amount : null,
                 'max_discount' => $promotion->max_discount !== null ? (float) $promotion->max_discount : null,
+                'service_id' => $promotion->service_id ? (int) $promotion->service_id : null,
+                'service_name' => $promotion->service?->name,
             ],
         ]);
     }
@@ -79,6 +89,7 @@ class PromotionController extends Controller
             : [];
 
         $promotions = Promotion::query()
+            ->with('service')
             ->when($usedPromotionIds !== [], fn ($query) => $query->whereNotIn('promotion_id', $usedPromotionIds))
             ->where('is_active', true)
             ->where('valid_from', '<=', $now)
@@ -109,6 +120,7 @@ class PromotionController extends Controller
     public function adminIndex(): JsonResponse
     {
         $promotions = Promotion::query()
+            ->with('service')
             ->orderBy('promotion_id')
             ->get()
             ->map(fn (Promotion $promotion) => $this->presentAdmin($promotion))
@@ -167,8 +179,9 @@ class PromotionController extends Controller
             ],
             'title' => ['required', 'string', 'max:100'],
             'description' => ['nullable', 'string'],
-            'discount_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],
-            'discount_amount' => ['nullable', 'numeric', 'min:0'],
+            'discount_percent' => ['nullable', 'numeric', 'gt:0', 'max:100'],
+            'discount_amount' => ['nullable', 'numeric', 'gt:0'],
+            'service_id' => ['nullable', 'integer', 'exists:services,service_id'],
             'min_order_value' => ['nullable', 'numeric', 'min:0'],
             'max_discount' => ['nullable', 'numeric', 'min:0'],
             'usage_limit' => ['nullable', 'integer', 'min:0'],
@@ -192,6 +205,9 @@ class PromotionController extends Controller
         $data['promo_type'] = $hasPercent ? 'percentage' : 'fixed_amount';
         $data['discount_percent'] = $hasPercent ? $data['discount_percent'] : null;
         $data['discount_amount'] = $hasAmount ? $data['discount_amount'] : null;
+        // Empty means "every service"; sending it explicitly keeps an edit
+        // able to clear a previous scope.
+        $data['service_id'] = $request->input('service_id') ? (int) $request->input('service_id') : null;
 
         return $data;
     }
@@ -211,6 +227,8 @@ class PromotionController extends Controller
             'max_discount' => $promotion->max_discount !== null ? (float) $promotion->max_discount : null,
             'min_order_value' => $promotion->min_order_value !== null ? (float) $promotion->min_order_value : null,
             'promo_type' => $promotion->promo_type,
+            'service_id' => $promotion->service_id ? (int) $promotion->service_id : null,
+            'service_name' => $promotion->service?->name,
             'valid_until' => $promotion->valid_until,
         ];
     }
@@ -232,6 +250,8 @@ class PromotionController extends Controller
             'usage_limit' => $promotion->usage_limit !== null ? (int) $promotion->usage_limit : null,
             'usage_count' => (int) $promotion->usage_count,
             'promo_type' => $promotion->promo_type,
+            'service_id' => $promotion->service_id ? (int) $promotion->service_id : null,
+            'service_name' => $promotion->service?->name,
             'valid_from' => $promotion->valid_from,
             'valid_until' => $promotion->valid_until,
             'is_active' => (bool) $promotion->is_active,

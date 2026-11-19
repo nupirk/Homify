@@ -5,6 +5,7 @@ namespace App\Http\Controllers\SuperAdmin;
 use App\Http\Controllers\Controller;
 use App\Models\Banner;
 use App\Models\Promotion;
+use App\Models\Service;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -50,6 +51,7 @@ class BannerController extends Controller
             'placements' => self::PLACEMENTS,
             'linkTypes' => self::LINK_TYPES,
             'displayStyles' => self::DISPLAY_STYLES,
+            'services' => Service::orderBy('name')->get(['service_id', 'name']),
         ]);
     }
 
@@ -82,6 +84,7 @@ class BannerController extends Controller
             'placements' => self::PLACEMENTS,
             'linkTypes' => self::LINK_TYPES,
             'displayStyles' => self::DISPLAY_STYLES,
+            'services' => Service::orderBy('name')->get(['service_id', 'name']),
         ]);
     }
 
@@ -147,6 +150,7 @@ class BannerController extends Controller
             'display_style' => ['required', 'string', Rule::in(self::DISPLAY_STYLES)],
             'link_type' => ['required', 'string', Rule::in(self::LINK_TYPES)],
             'link_value' => ['nullable', 'string', 'max:255'],
+            'service_id' => ['nullable', 'integer', 'exists:services,service_id'],
             'valid_from' => ['required', 'date'],
             'valid_until' => ['nullable', 'date', 'after:valid_from'],
             'sort_order' => ['nullable', 'integer', 'min:0'],
@@ -178,6 +182,8 @@ class BannerController extends Controller
         }
 
         $data['link_value'] = $data['link_type'] === 'none' ? null : $data['link_value'];
+        // Empty means every screen; a value scopes it to that service's cart.
+        $data['service_id'] = $request->input('service_id') ? (int) $request->input('service_id') : null;
 
         // datetime-local posts "2026-11-19T10:00"; store a clean timestamp.
         $data['valid_from'] = Carbon::parse($data['valid_from']);
@@ -207,7 +213,9 @@ class BannerController extends Controller
             $reason = "The promotion '{$code}' has not started yet.";
         } elseif ($promotion->valid_until && now()->gt($promotion->valid_until)) {
             $reason = "The promotion '{$code}' has expired.";
-        } elseif ($promotion->usage_limit !== null && (int) $promotion->usage_count >= (int) $promotion->usage_limit) {
+        } elseif ($promotion->usage_limit !== null
+            && (int) $promotion->usage_limit > 0
+            && (int) $promotion->usage_count >= (int) $promotion->usage_limit) {
             $reason = "The promotion '{$code}' has reached its usage limit.";
         }
 

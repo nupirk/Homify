@@ -89,6 +89,52 @@ class BannerManagementTest extends TestCase
         ], $overrides);
     }
 
+    public function test_public_feed_returns_global_banners_plus_the_scoped_ones_asked_for(): void
+    {
+        $category = \App\Models\Category::create(['name' => 'Cleaning', 'is_active' => true]);
+        $deep = \App\Models\Service::create([
+            'category_id' => $category->category_id,
+            'name' => 'Deep Cleaning',
+            'description' => 'Deep clean',
+            'is_active' => true,
+        ]);
+        $home = \App\Models\Service::create([
+            'category_id' => $category->category_id,
+            'name' => 'Home Cleaning',
+            'description' => 'Regular clean',
+            'is_active' => true,
+        ]);
+
+        $global = $this->makeBanner(['title' => 'Global', 'sort_order' => 1]);
+        $scoped = $this->makeBanner([
+            'title' => 'Deep only',
+            'service_id' => $deep->service_id,
+            'sort_order' => 2,
+        ]);
+        $this->makeBanner([
+            'title' => 'Home only',
+            'service_id' => $home->service_id,
+            'sort_order' => 3,
+        ]);
+
+        Sanctum::actingAs($this->customer, ['*']);
+
+        // No service context (home/explore): global banners only.
+        $this->assertSame(
+            [$global->banner_id],
+            array_column($this->getJson('/api/v1/banners')->json('data.banners'), 'banner_id')
+        );
+
+        // The cart passes the services it holds: global + the matching one.
+        $this->assertSame(
+            [$global->banner_id, $scoped->banner_id],
+            array_column(
+                $this->getJson('/api/v1/banners?service_ids=' . $deep->service_id)->json('data.banners'),
+                'banner_id'
+            )
+        );
+    }
+
     public function test_public_feed_excludes_inactive_expired_and_future_banners(): void
     {
         $openEnded = $this->makeBanner(['title' => 'Open ended', 'valid_until' => null, 'sort_order' => 1]);

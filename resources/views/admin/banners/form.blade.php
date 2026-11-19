@@ -124,6 +124,25 @@
                     </div>
                 </div>
 
+                <div class="border-t border-gray-200 pt-6">
+                    <label for="service_id" class="block text-sm font-medium text-gray-700 mb-2">Show only for a
+                        service</label>
+                    <select id="service_id" name="service_id"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                        <option value="">Every screen</option>
+                        @foreach ($services as $service)
+                            <option value="{{ $service->service_id }}"
+                                {{ (string) old('service_id', $banner->service_id) === (string) $service->service_id ? 'selected' : '' }}>
+                                {{ $service->name }}
+                            </option>
+                        @endforeach
+                    </select>
+                    <p class="text-xs text-gray-500 mt-1">
+                        A scoped banner renders on the cart only while that service is in it. Home and explore show
+                        every-screen banners only.
+                    </p>
+                </div>
+
                 <div class="border-t border-gray-200 pt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                         <label for="link_type" class="block text-sm font-medium text-gray-700 mb-2">Tap opens *</label>

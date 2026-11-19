@@ -25,13 +25,31 @@ class BannerController extends Controller
 
     /**
      * Public feed: active banners inside their validity window, ordered.
+     *
+     * A banner scoped to a service only renders where that service is in play:
+     * the caller passes the ids it is showing (`?service_ids=3,7`, the cart's
+     * lines). Screens without a service context send nothing and therefore
+     * see only the global banners.
      */
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
         $now = now();
 
+        $serviceIds = collect(explode(',', (string) $request->query('service_ids', '')))
+            ->map(fn ($id) => (int) trim($id))
+            ->filter(fn ($id) => $id > 0)
+            ->unique()
+            ->values()
+            ->all();
+
         $banners = Banner::query()
             ->where('is_active', true)
+            ->when($serviceIds !== [], function ($query) use ($serviceIds) {
+                $query->where(function ($q) use ($serviceIds) {
+                    $q->whereNull('service_id')->orWhereIn('service_id', $serviceIds);
+                });
+            })
+            ->when($serviceIds === [], fn ($query) => $query->whereNull('service_id'))
             ->where('valid_from', '<=', $now)
             ->where(function ($query) use ($now) {
                 $query->whereNull('valid_until')->orWhere('valid_until', '>=', $now);
@@ -48,6 +66,7 @@ class BannerController extends Controller
                 'display_style' => $banner->display_style ?? 'banner',
                 'link_type' => $banner->link_type,
                 'link_value' => $banner->link_value,
+                'service_id' => $banner->service_id ? (int) $banner->service_id : null,
                 'sort_order' => (int) $banner->sort_order,
             ])
             ->values();
@@ -151,6 +170,7 @@ class BannerController extends Controller
             'display_style' => ['nullable', 'string', Rule::in(self::DISPLAY_STYLES)],
             'link_type' => ['nullable', 'string', Rule::in(self::LINK_TYPES)],
             'link_value' => ['nullable', 'string', 'max:255'],
+            'service_id' => ['nullable', 'integer', 'exists:services,service_id'],
             'valid_from' => ['required', 'date'],
             'valid_until' => ['nullable', 'date', 'after:valid_from'],
             'sort_order' => ['nullable', 'integer', 'min:0'],
@@ -174,6 +194,9 @@ class BannerController extends Controller
 
         $data['link_type'] = $linkType;
         $data['link_value'] = $linkType === 'none' ? null : $data['link_value'];
+        // Empty means every screen; an explicit value scopes the banner to the
+        // cart that contains that service.
+        $data['service_id'] = $request->input('service_id') ? (int) $request->input('service_id') : null;
 
         // Omitted means "leave it as it is": an older admin build that does
         // not know about display_style must not reset a popup back to banner.
@@ -204,7 +227,9 @@ class BannerController extends Controller
             $reason = "The promotion '{$code}' has not started yet.";
         } elseif ($promotion->valid_until && now()->gt($promotion->valid_until)) {
             $reason = "The promotion '{$code}' has expired.";
-        } elseif ($promotion->usage_limit !== null && (int) $promotion->usage_count >= (int) $promotion->usage_limit) {
+        } elseif ($promotion->usage_limit !== null
+            && (int) $promotion->usage_limit > 0
+            && (int) $promotion->usage_count >= (int) $promotion->usage_limit) {
             $reason = "The promotion '{$code}' has reached its usage limit.";
         }
 

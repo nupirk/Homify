@@ -269,6 +269,169 @@ class PromoEngineTest extends TestCase
         ]))->assertStatus(422)->assertJsonPath('message', 'This promo code has reached its usage limit.');
     }
 
+    /**
+     * A second, cheaper service so a scoped code has a line of its own.
+     */
+    private function secondService(): Service
+    {
+        $service = Service::create([
+            'category_id' => $this->service->category_id,
+            'name' => 'Deep Cleaning',
+            'description' => 'Deep clean',
+            'is_active' => true,
+            'requires_prepay' => false,
+        ]);
+
+        ServicePricing::create([
+            'category_id' => $this->service->category_id,
+            'service_id' => $service->service_id,
+            'tier_name' => 'standard',
+            'base_price' => 500,
+            'is_active' => true,
+        ]);
+
+        return $service;
+    }
+
+    public function test_scoped_promo_only_discounts_its_own_line(): void
+    {
+        $other = $this->secondService();
+        $this->makePromo([
+            'promo_code' => 'DEEP20',
+            'discount_percent' => 20,
+            'service_id' => $other->service_id,
+        ]);
+
+        Sanctum::actingAs($this->customer, ['*']);
+        $res = $this->postJson('/api/v1/bookings', $this->bookingPayload([
+            'services' => [
+                ['service_id' => $this->service->service_id, 'quantity' => 1], // 1500
+                ['service_id' => $other->service_id, 'quantity' => 1],        // 500
+            ],
+            'promo_code' => 'DEEP20',
+        ]));
+        $res->assertStatus(201);
+
+        $order = Order::findOrFail($res->json('order_id'));
+        $this->assertEquals(2000.0, (float) $order->subtotal);
+        // 20% of the 500 line only - never 20% of the 2000 cart.
+        $this->assertEquals(100.0, (float) $order->discount_amount);
+        $this->assertEquals(
+            1900.0,
+            (float) $order->total_amount - (float) $order->tax_amount
+        );
+    }
+
+    public function test_scoped_promo_is_refused_when_the_service_is_not_in_the_cart(): void
+    {
+        $other = $this->secondService();
+        $this->makePromo([
+            'promo_code' => 'DEEP20',
+            'discount_percent' => 20,
+            'service_id' => $other->service_id,
+        ]);
+
+        Sanctum::actingAs($this->customer, ['*']);
+        $this->postJson('/api/v1/promotions/validate', [
+            'code' => 'DEEP20',
+            'subtotal' => 1500,
+            'items' => [['service_id' => $this->service->service_id, 'subtotal' => 1500]],
+        ])
+            ->assertStatus(422)
+            ->assertJsonPath('message', 'This promo code only applies to Deep Cleaning, which is not in your cart.');
+    }
+
+    public function test_scoped_min_order_value_is_measured_on_the_scoped_line(): void
+    {
+        $other = $this->secondService();
+        $this->makePromo([
+            'promo_code' => 'DEEPMIN',
+            'discount_percent' => 10,
+            'service_id' => $other->service_id,
+            'min_order_value' => 1000,
+        ]);
+
+        Sanctum::actingAs($this->customer, ['*']);
+        // The cart is 2000, but the scoped line is only 500.
+        $this->postJson('/api/v1/promotions/validate', [
+            'code' => 'DEEPMIN',
+            'subtotal' => 2000,
+            'items' => [
+                ['service_id' => $this->service->service_id, 'subtotal' => 1500],
+                ['service_id' => $other->service_id, 'subtotal' => 500],
+            ],
+        ])
+            ->assertStatus(422)
+            ->assertJsonPath('message', 'This promo code requires a minimum order of Rs. 1,000.');
+    }
+
+    public function test_fixed_amount_scoped_promo_is_capped_by_the_scoped_line(): void
+    {
+        $other = $this->secondService(); // 500
+        $this->makePromo([
+            'promo_code' => 'DEEP800',
+            'promo_type' => 'fixed_amount',
+            'discount_percent' => null,
+            'discount_amount' => 800,
+            'service_id' => $other->service_id,
+        ]);
+
+        Sanctum::actingAs($this->customer, ['*']);
+        $res = $this->postJson('/api/v1/promotions/validate', [
+            'code' => 'DEEP800',
+            'subtotal' => 2000,
+            'items' => [
+                ['service_id' => $this->service->service_id, 'subtotal' => 1500],
+                ['service_id' => $other->service_id, 'subtotal' => 500],
+            ],
+        ]);
+
+        $res->assertOk();
+        $this->assertEquals(500.0, (float) $res->json('discount_amount'));
+    }
+
+    public function test_a_code_with_no_discount_configured_is_refused_instead_of_applying_zero(): void
+    {
+        $this->makePromo([
+            'promo_code' => 'NODISCOUNT',
+            'promo_type' => 'percentage',
+            'discount_percent' => 0,
+            'discount_amount' => null,
+        ]);
+
+        Sanctum::actingAs($this->customer, ['*']);
+        $this->postJson('/api/v1/promotions/validate', ['code' => 'NODISCOUNT', 'subtotal' => 1000])
+            ->assertStatus(422)
+            ->assertJsonPath('message', 'This promo code is not set up with a discount.');
+    }
+
+    public function test_cancelling_an_unpaid_booking_releases_the_promo_for_a_rebooking(): void
+    {
+        $this->makePromo(['promo_code' => 'RETRY10', 'discount_percent' => 10]);
+
+        Sanctum::actingAs($this->customer, ['*']);
+        $res = $this->postJson('/api/v1/bookings', $this->bookingPayload(['promo_code' => 'RETRY10']));
+        $res->assertStatus(201);
+
+        $order = Order::findOrFail($res->json('order_id'));
+        $promotion = Promotion::where('promo_code', 'RETRY10')->first();
+        $this->assertSame(1, (int) $promotion->fresh()->usage_count);
+
+        app(\App\Services\CancellationService::class)->cancel($order, 'customer', 'changed my mind');
+
+        $this->assertSame(0, (int) $promotion->fresh()->usage_count);
+        $this->assertDatabaseHas('user_promotions', [
+            'user_id' => $this->customer->user_id,
+            'promotion_id' => $promotion->promotion_id,
+            'used' => false,
+        ]);
+
+        // The same code works again on the rebooking.
+        $this->postJson('/api/v1/promotions/validate', ['code' => 'RETRY10', 'subtotal' => 1000])
+            ->assertOk()
+            ->assertJsonPath('valid', true);
+    }
+
     public function test_validate_requires_authentication(): void
     {
         app('auth')->forgetGuards();

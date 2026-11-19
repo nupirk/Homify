@@ -150,6 +150,10 @@
                                         <div class="text-xs text-gray-500 max-w-xs truncate">
                                             {{ $promotion->description }}</div>
                                     @endif
+                                    <div class="text-xs {{ $promotion->service_id ? 'text-indigo-600' : 'text-gray-400' }}">
+                                        Applies to:
+                                        {{ $promotion->service?->name ?? 'All services' }}
+                                    </div>
                                 </td>
                                 <td class="px-6 py-4 text-sm text-gray-700">
                                     @if ($promotion->discount_percent !== null)
@@ -200,6 +204,7 @@
                                             'min_order_value' => $promotion->min_order_value !== null ? (float) $promotion->min_order_value : '',
                                             'max_discount' => $promotion->max_discount !== null ? (float) $promotion->max_discount : '',
                                             'usage_limit' => $promotion->usage_limit,
+                                            'service_id' => $promotion->service_id,
                                             'valid_from' => optional($promotion->valid_from)->format('Y-m-d\\TH:i'),
                                             'valid_until' => optional($promotion->valid_until)->format('Y-m-d\\TH:i'),
                                             'is_active' => $promotion->is_active,
@@ -277,6 +282,23 @@
                     <textarea name="description" id="description" rows="2"
                         class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500"
                         placeholder="Shown to customers when the code is applied">{{ $oldValues['description'] }}</textarea>
+                </div>
+
+                <div>
+                    <label for="service_id" class="block text-sm font-medium text-gray-700 mb-1">
+                        Applies to <span class="text-gray-400 font-normal">(optional)</span>
+                    </label>
+                    <select name="service_id" id="service_id"
+                        class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500">
+                        <option value="">All services</option>
+                        @foreach ($services as $service)
+                            <option value="{{ $service->service_id }}">{{ $service->name }}</option>
+                        @endforeach
+                    </select>
+                    <p class="text-xs text-gray-500 mt-1">
+                        A scoped code only discounts that service's line in the cart, and only
+                        checks its minimum spend against it.
+                    </p>
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -403,6 +425,7 @@
                     setField('min_order_value', data.min_order_value);
                     setField('max_discount', data.max_discount);
                     setField('usage_limit', data.usage_limit);
+                    setField('service_id', data.service_id);
                     setField('valid_from', data.valid_from);
                     setField('valid_until', data.valid_until);
                     document.getElementById('is_active').checked = !!data.is_active;
@@ -419,6 +442,7 @@
                     setField('min_order_value', '');
                     setField('max_discount', '');
                     setField('usage_limit', '');
+                    setField('service_id', '');
                     setField('valid_from', '');
                     setField('valid_until', '');
                     document.getElementById('is_active').checked = true;

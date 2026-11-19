@@ -17,6 +17,7 @@ class Banner extends Model
         'display_style',
         'link_type',
         'link_value',
+        'service_id',
         'valid_from',
         'valid_until',
         'is_active',
@@ -33,5 +34,13 @@ class Banner extends Model
     public function getRouteKeyName(): string
     {
         return 'banner_id';
+    }
+
+    /**
+     * The service this banner is restricted to; null means every screen.
+     */
+    public function service()
+    {
+        return $this->belongsTo(Service::class, 'service_id', 'service_id');
     }
 }

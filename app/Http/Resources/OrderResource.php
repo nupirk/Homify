@@ -27,6 +27,10 @@ class OrderResource extends JsonResource
             'cash_disputed_at' => $this->cash_disputed_at ?? null,
             'subtotal' => (float) $this->subtotal,
             'discount_amount' => (float) $this->discount_amount,
+            // What made up the discount, so the app can show the breakdown
+            // instead of a single netted total.
+            'promo_code' => $this->promo_code,
+            'membership_discount' => (float) ($this->membership_discount ?? 0),
             'tax_amount' => (float) $this->tax_amount,
             'tip_amount' => (float) $this->tip_amount,
             'total_amount' => (float) $this->total_amount,

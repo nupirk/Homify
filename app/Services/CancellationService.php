@@ -102,6 +102,14 @@ class CancellationService
 
             $locked->update(['status' => $newStatus]);
 
+            // The customer never received what the code bought: hand the
+            // redemption back so they can use it on the rebooking. Orders that
+            // were paid online keep it burned - their refund already covers
+            // the discounted amount.
+            if (!$wasPaidOnline) {
+                PromoService::releaseUsage($locked);
+            }
+
             // Cancel every service request a partner has not started yet.
             // 'accepted'/'enroute' MUST be included: a partner who accepted a
             // job keeps it until they start work, and leaving those rows alive

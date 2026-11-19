@@ -23,6 +23,7 @@ class Promotion extends Model
         'valid_until',
         'is_active',
         'promo_type',
+        'service_id',
     ];
 
     protected $casts = [
@@ -36,4 +37,12 @@ class Promotion extends Model
         'valid_until' => 'datetime',
         'is_active' => 'boolean',
     ];
+
+    /**
+     * The service this code is restricted to; null means any service.
+     */
+    public function service()
+    {
+        return $this->belongsTo(Service::class, 'service_id', 'service_id');
+    }
 }

@@ -93,6 +93,11 @@ class CancelExpiredBookings implements ShouldQueue
                             ],
                         ]);
 
+                    // Release the promo redemption: this order was never paid,
+                    // so the code must stay usable for the rebooking instead of
+                    // burning out on an abandoned payment.
+                    \App\Services\PromoService::releaseUsage($lockedOrder);
+
                     return $lockedOrder->fresh();
                 });
 

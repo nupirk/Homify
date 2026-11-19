@@ -4,6 +4,7 @@ namespace App\Http\Controllers\SuperAdmin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Promotion;
+use App\Models\Service;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -24,7 +25,7 @@ class PromotionController extends Controller
      */
     public function index(): View
     {
-        $promotions = Promotion::orderByDesc('created_at')->paginate(20);
+        $promotions = Promotion::with('service')->orderByDesc('created_at')->paginate(20);
 
         $now = now();
         $stats = [
@@ -39,7 +40,10 @@ class PromotionController extends Controller
             'expired' => Promotion::where('valid_until', '<', $now)->count(),
         ];
 
-        return view('admin.promotions.index', compact('promotions', 'stats'));
+        // The form can restrict a code to one service; empty means every one.
+        $services = Service::orderBy('name')->get(['service_id', 'name']);
+
+        return view('admin.promotions.index', compact('promotions', 'stats', 'services'));
     }
 
     /**
@@ -104,8 +108,9 @@ class PromotionController extends Controller
             ],
             'title' => ['required', 'string', 'max:100'],
             'description' => ['nullable', 'string'],
-            'discount_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],
-            'discount_amount' => ['nullable', 'numeric', 'min:0'],
+            'discount_percent' => ['nullable', 'numeric', 'gt:0', 'max:100'],
+            'discount_amount' => ['nullable', 'numeric', 'gt:0'],
+            'service_id' => ['nullable', 'integer', 'exists:services,service_id'],
             'min_order_value' => ['nullable', 'numeric', 'min:0'],
             'max_discount' => ['nullable', 'numeric', 'min:0'],
             'usage_limit' => ['nullable', 'integer', 'min:0'],
@@ -128,6 +133,8 @@ class PromotionController extends Controller
         $data['discount_percent'] = $hasPercent ? $data['discount_percent'] : null;
         $data['discount_amount'] = $hasAmount ? $data['discount_amount'] : null;
         $data['is_active'] = $request->boolean('is_active');
+        // Empty selection means "applies to every service".
+        $data['service_id'] = $request->input('service_id') ? (int) $request->input('service_id') : null;
 
         return $data;
     }
