@@ -299,7 +299,7 @@
             // Load dashboard data
             async function loadDashboard() {
                     try {
-                        const response = await fetch('/api/v1/admin/notifications/dashboard', {
+                        const response = await fetch('/admin/notifications/data/dashboard', {
                             headers: { 'Accept': 'application/json' }
                         });
                         const data = await response.json();
@@ -323,7 +323,7 @@
                         // Load templates
                         async function loadTemplates() {
                             try {
-                                const response = await fetch('/api/v1/admin/notifications/templates');
+                                const response = await fetch('/admin/notifications/data/templates');
                                 const data = await response.json();
 
                                 if (data.success) {
@@ -353,7 +353,7 @@
                         // Load campaigns
                         async function loadCampaigns() {
                             try {
-                                const response = await fetch('/api/v1/admin/notifications/campaigns');
+                                const response = await fetch('/admin/notifications/data/campaigns');
                                 const data = await response.json();
 
                                 if (data.success) {
@@ -413,7 +413,7 @@
                             };
 
                             try {
-                                const response = await fetch('/api/v1/admin/notifications/send-quick', {
+                                const response = await fetch('/admin/notifications/data/send-quick', {
                                     method: 'POST',
                                     headers: {
                                         'Content-Type': 'application/json',
@@ -444,7 +444,7 @@
                         async function deleteTemplate(templateId) {
                             if (confirm('Are you sure you want to delete this template?')) {
                                 try {
-                                    const response = await fetch(`/api/v1/admin/notifications/templates/${templateId}`, {
+                                    const response = await fetch(`/admin/notifications/data/templates/${templateId}`, {
                                         method: 'DELETE',
                                         headers: {
                                             'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')

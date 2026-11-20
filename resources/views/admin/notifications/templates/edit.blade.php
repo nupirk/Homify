@@ -268,7 +268,7 @@
 
             async function loadTemplate() {
                 try {
-                    const response = await fetch(`/api/v1/admin/notifications/templates/${templateId}`);
+                    const response = await fetch(`/admin/notifications/data/templates/${templateId}`);
 
                     if (!response.ok) {
                         throw new Error(`HTTP error! status: ${response.status}`);
@@ -368,7 +368,7 @@
                 data.allow_variables = document.getElementById('allow_variables').checked;
 
                 try {
-                    const response = await fetch(`/api/v1/admin/notifications/templates/${templateId}`, {
+                    const response = await fetch(`/admin/notifications/data/templates/${templateId}`, {
                         method: 'PUT',
                         headers: {
                             'Content-Type': 'application/json',
@@ -418,7 +418,7 @@
                 }
 
                 try {
-                    const response = await fetch(`/api/v1/admin/notifications/templates/${templateId}`, {
+                    const response = await fetch(`/admin/notifications/data/templates/${templateId}`, {
                         method: 'DELETE',
                         headers: {
                             'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute(

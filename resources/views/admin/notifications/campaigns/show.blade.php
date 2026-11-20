@@ -255,7 +255,7 @@
 
             async function loadCampaign() {
                 try {
-                    const response = await fetch(`/api/v1/admin/notifications/campaigns/${campaignId}`);
+                    const response = await fetch(`/admin/notifications/data/campaigns/${campaignId}`);
                     const data = await response.json();
 
                     if (data.success) {
@@ -290,10 +290,16 @@
                     `inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getStatusClass(campaign.status)}`;
 
                 // Update stats
-                document.getElementById('target-count').textContent = campaign.target_count || 0;
-                document.getElementById('sent-count').textContent = campaign.sent_count || 0;
-                document.getElementById('failed-count').textContent = campaign.failed_count || 0;
-                document.getElementById('pending-count').textContent = campaign.pending_count || 0;
+                // The campaign table stores total/successful/failed; the page
+                // asked for fields that never existed and always showed zeros.
+                const totalRecipients = campaign.total_recipients || 0;
+                const successfulSends = campaign.successful_sends || 0;
+                const failedSends = campaign.failed_sends || 0;
+                document.getElementById('target-count').textContent = totalRecipients;
+                document.getElementById('sent-count').textContent = successfulSends;
+                document.getElementById('failed-count').textContent = failedSends;
+                document.getElementById('pending-count').textContent =
+                    Math.max(0, totalRecipients - successfulSends - failedSends);
 
                 // Update info section
                 document.getElementById('info-name').textContent = campaign.name || '-';
@@ -307,8 +313,8 @@
                 document.getElementById('info-scheduled').textContent = campaign.scheduled_at ?
                     new Date(campaign.scheduled_at).toLocaleString() :
                     'Immediate';
-                document.getElementById('info-completed').textContent = campaign.completed_at ?
-                    new Date(campaign.completed_at).toLocaleString() :
+                document.getElementById('info-completed').textContent = campaign.sent_at ?
+                    new Date(campaign.sent_at).toLocaleString() :
                     '-';
                 document.getElementById('info-description').textContent = campaign.description || 'No description provided';
 
@@ -345,7 +351,7 @@
                     cancelBtn.disabled = true;
                 }
 
-                if (campaign.failed_count === 0) {
+                if (!campaign.failed_sends) {
                     retryBtn.disabled = true;
                 }
 
@@ -368,7 +374,7 @@
                         })
                     });
 
-                    const response = await fetch(`/api/v1/admin/notifications/campaigns/${campaignId}/logs?${params}`);
+                    const response = await fetch(`/admin/notifications/data/campaigns/${campaignId}/logs?${params}`);
                     const data = await response.json();
 
                     if (data.success) {
@@ -390,7 +396,7 @@
                                 ${log.sent_at ? new Date(log.sent_at).toLocaleString() : '-'}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                ${log.response_message || '-'}
+                                ${log.error_message || (log.status === 'sent' ? 'Delivered' : '-')}
                             </td>
                         </tr>
                     `).join('');

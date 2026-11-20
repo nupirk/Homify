@@ -141,6 +141,22 @@ Route::prefix('admin')->name('admin.')->middleware(['admin.auth'])->group(functi
             Route::post('/create', [NotificationController::class, 'storeCampaign'])->name('store');
             Route::get('/{campaign}', [NotificationController::class, 'showCampaign'])->name('show');
         });
+
+        // JSON for the panel itself. The admin UI is session-authenticated, so
+        // it cannot call /api/v1/admin/* - those routes require a Sanctum
+        // personal access token and answered every panel fetch with
+        // "Unauthenticated." instead.
+        Route::prefix('data')->name('data.')->group(function () {
+            Route::get('dashboard', [NotificationController::class, 'dashboard'])->name('dashboard');
+            Route::get('templates', [NotificationController::class, 'getTemplates'])->name('templates.index');
+            Route::get('templates/{template}', [NotificationController::class, 'getTemplate'])->name('templates.show');
+            Route::put('templates/{template}', [NotificationController::class, 'updateTemplate'])->name('templates.update');
+            Route::delete('templates/{template}', [NotificationController::class, 'deleteTemplate'])->name('templates.destroy');
+            Route::get('campaigns', [NotificationController::class, 'getCampaigns'])->name('campaigns.index');
+            Route::get('campaigns/{campaign}', [NotificationController::class, 'getCampaign'])->name('campaigns.show');
+            Route::get('campaigns/{campaign}/logs', [NotificationController::class, 'getCampaignLogs'])->name('campaigns.logs');
+            Route::post('send-quick', [NotificationController::class, 'sendQuickNotification'])->name('send-quick');
+        });
     });
 
     // Marketing: discount offers (promo codes)

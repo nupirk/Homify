@@ -754,6 +754,52 @@ class NotificationController extends Controller
     }
 
     /**
+     * Delivery logs for one campaign, shaped for the admin campaign page.
+     *
+     * The page used to call a /logs endpoint that never existed, so the table
+     * stayed empty even when the campaign had run.
+     */
+    public function getCampaignLogs(NotificationCampaign $campaign, Request $request): JsonResponse
+    {
+        $query = NotificationLog::with('user')
+            ->where('campaign_id', $campaign->campaign_id);
+
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        $logs = $query->orderByDesc('created_at')->paginate(20);
+
+        return response()->json([
+            'success' => true,
+            'data' => $logs->getCollection()->map(fn (NotificationLog $log) => [
+                'log_id' => $log->log_id,
+                'user_id' => $log->user_id,
+                'recipient_email' => $log->user?->email,
+                'recipient_phone' => $log->user?->phone,
+                'platform' => $log->platform,
+                'status' => $log->status,
+                'error_message' => $log->error_message,
+                'sent_at' => $log->sent_at?->toIso8601String(),
+            ])->all(),
+            'total' => $logs->total(),
+            'per_page' => $logs->perPage(),
+            'current_page' => $logs->currentPage(),
+        ]);
+    }
+
+    /**
+     * A single template, for the edit form to populate itself.
+     */
+    public function getTemplate(NotificationTemplate $template): JsonResponse
+    {
+        return response()->json([
+            'success' => true,
+            'data' => $template,
+        ]);
+    }
+
+    /**
      * Get all campaigns with filtering
      */
     public function getCampaigns(Request $request): JsonResponse
