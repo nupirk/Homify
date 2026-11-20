@@ -50,19 +50,16 @@ class ReportController extends Controller
                 fputcsv($out, [$row->type, $row->entries, number_format((float) $row->total, 2, '.', '')]);
             }
 
-            fputcsv($out, [
-                'TOTAL',
-                $rows->sum('entries'),
-                number_format((float) $rows->sum('total'), 2, '.', ''),
-            ]);
-
-            // Promo discounts are platform spend, so they come off revenue.
-            $discounts = (float) $rows->where('type', self::DISCOUNT_TYPE)->sum('total');
-            $revenue = (float) $rows->whereIn('type', self::REVENUE_TYPES)->sum('total');
+            // Promo discounts are platform spend, so they are reported apart
+            // from revenue instead of being folded into a single total.
+            $revenueRows = $rows->whereIn('type', self::REVENUE_TYPES);
+            $discountRows = $rows->where('type', self::DISCOUNT_TYPE);
+            $revenue = (float) $revenueRows->sum('total');
+            $discounts = (float) $discountRows->sum('total');
 
             fputcsv($out, ['', '', '']);
-            fputcsv($out, ['Revenue (fee + tax)', '', number_format($revenue, 2, '.', '')]);
-            fputcsv($out, ['Promo discounts funded', '', number_format($discounts, 2, '.', '')]);
+            fputcsv($out, ['Revenue (fee + tax)', $revenueRows->sum('entries'), number_format($revenue, 2, '.', '')]);
+            fputcsv($out, ['Promo discounts funded', $discountRows->sum('entries'), number_format($discounts, 2, '.', '')]);
             fputcsv($out, ['Net revenue', '', number_format($revenue - $discounts, 2, '.', '')]);
 
             fclose($out);

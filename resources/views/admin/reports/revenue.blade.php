@@ -84,27 +84,25 @@
                         @endforelse
                     </tbody>
                     @php
-                        $revenue = (float) $rows->whereIn('type', ['PLATFORM_FEE', 'TAX_PAYABLE'])->sum('total');
-                        $discounts = (float) $rows->where('type', 'DISCOUNT_EXPENSE')->sum('total');
+                        $revenueRows = $rows->whereIn('type', ['PLATFORM_FEE', 'TAX_PAYABLE']);
+                        $discountRows = $rows->where('type', 'DISCOUNT_EXPENSE');
+                        $revenue = (float) $revenueRows->sum('total');
+                        $discounts = (float) $discountRows->sum('total');
                     @endphp
                     <tfoot class="bg-gray-50">
                         <tr>
-                            <th class="px-6 py-4 text-left text-sm font-semibold text-gray-900">Total</th>
-                            <th class="px-6 py-4 text-right text-sm font-semibold text-gray-900">{{ $rows->sum('entries') }}</th>
-                            <th class="px-6 py-4 text-right text-sm font-semibold text-gray-900">
-                                NPR {{ number_format((float) $rows->sum('total'), 2) }}
-                            </th>
+                            <th class="px-6 py-4 text-left text-sm font-semibold text-gray-900">Revenue (fee + tax)</th>
+                            <th class="px-6 py-4 text-right text-sm font-semibold text-gray-900">{{ $revenueRows->sum('entries') }}</th>
+                            <th class="px-6 py-4 text-right text-sm font-semibold text-gray-900">NPR {{ number_format($revenue, 2) }}</th>
                         </tr>
                         <tr>
-                            <th colspan="2" class="px-6 py-2 text-left text-sm font-medium text-gray-700">Revenue (fee + tax)</th>
-                            <th class="px-6 py-2 text-right text-sm font-medium text-gray-700">NPR {{ number_format($revenue, 2) }}</th>
-                        </tr>
-                        <tr>
-                            <th colspan="2" class="px-6 py-2 text-left text-sm font-medium text-gray-700">Promo discounts funded</th>
+                            <th class="px-6 py-2 text-left text-sm font-medium text-gray-700">Promo discounts funded</th>
+                            <th class="px-6 py-2 text-right text-sm font-medium text-gray-700">{{ $discountRows->sum('entries') }}</th>
                             <th class="px-6 py-2 text-right text-sm font-medium text-gray-700">NPR {{ number_format($discounts, 2) }}</th>
                         </tr>
                         <tr>
-                            <th colspan="2" class="px-6 py-4 text-left text-sm font-bold text-gray-900">Net revenue</th>
+                            <th class="px-6 py-4 text-left text-sm font-bold text-gray-900">Net revenue</th>
+                            <th class="px-6 py-4 text-right text-sm font-bold text-gray-900"></th>
                             <th class="px-6 py-4 text-right text-sm font-bold text-gray-900">NPR {{ number_format($revenue - $discounts, 2) }}</th>
                         </tr>
                     </tfoot>

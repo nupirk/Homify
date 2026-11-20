@@ -58,31 +58,35 @@ class EarningController extends Controller
                     // actually paid and what the platform kept, instead of a
                     // settlement line that looks like a deduction out of
                     // nowhere. A promo never reduces the partner's share.
-                    if ($earning->booking_id && $earning->type === 'PARTNER_EARNING') {
+                    if ($earning->booking_id && $earning->type === 'PARTNER_EARNING'
+                        && (($earning->metadata['payment'] ?? null) === 'pas')) {
+                        // A fully discounted job has no cash leg at all, so the
+                        // split must come from the settlement metadata rather
+                        // than from the existence of a settlement row.
                         $settlement = LedgerEntry::where('booking_id', $earning->booking_id)
                             ->where('user_id', $earning->user_id)
                             ->where('type', 'PAS_CASH_SETTLEMENT')
                             ->orderBy('id')
                             ->first();
 
-                        if ($settlement) {
-                            $collected = abs((float) $settlement->amount);
-                            $earned = (float) $earning->amount;
-                            $gross = (float) ($earning->metadata['gross_service_value'] ?? 0);
+                        $collected = $settlement ? abs((float) $settlement->amount) : 0.0;
+                        $earned = (float) $earning->amount;
+                        $gross = (float) ($earning->metadata['gross_service_value'] ?? 0);
 
-                            $earning->payment_mode = 'pas';
-                            $earning->cash_collected = $collected;
-                            $earning->platform_cut = round($collected - $earned, 2);
-                            $earning->breakdown = [
-                                'base_price' => $gross,
-                                'tax_amount' => 0,
-                                'platform_fee' => round($gross - $earned, 2),
-                                'partner_earning' => $earned,
-                                'commission_rate' => $gross > 0 ? round((($gross - $earned) / $gross) * 100, 1) : 0,
-                                'validation_status' => 'pas_settlement',
-                                'rates_source' => 'pas_settlement',
-                            ];
-                        }
+                        $earning->payment_mode = 'pas';
+                        $earning->cash_collected = $collected;
+                        // Negative means the platform owes the partner (a job
+                        // the promo covered in full).
+                        $earning->platform_cut = round($collected - $earned, 2);
+                        $earning->breakdown = [
+                            'base_price' => $gross,
+                            'tax_amount' => 0,
+                            'platform_fee' => round($gross - $earned, 2),
+                            'partner_earning' => $earned,
+                            'commission_rate' => $gross > 0 ? round((($gross - $earned) / $gross) * 100, 1) : 0,
+                            'validation_status' => 'pas_settlement',
+                            'rates_source' => 'pas_settlement',
+                        ];
                     }
 
                     if ($earning->booking_id && ($earning->payment_mode ?? null) !== 'pas') {

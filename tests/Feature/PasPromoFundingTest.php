@@ -238,5 +238,19 @@ class PasPromoFundingTest extends TestCase
             (float) $balance->available_balance,
             'A fully promoted job must not put the partner in debt'
         );
+
+        // The earnings row still explains the split even though no cash moved:
+        // nothing collected, and the platform owes the partner their share.
+        Sanctum::actingAs($this->partner, ['*']);
+        $row = collect($this->getJson('/api/v1/earnings')->json('data.earnings.data'))
+            ->firstWhere('booking_id', $order->order_id);
+
+        $this->assertIsArray($row, 'A fully promoted job must appear in the partner earnings list');
+        $this->assertSame('pas', $row['payment_mode']);
+        $this->assertEqualsWithDelta(0.00, (float) $row['cash_collected'], 0.01);
+        $this->assertEqualsWithDelta(-1200.00, (float) $row['platform_cut'], 0.01);
+        $this->assertSame('pas_settlement', $row['breakdown']['validation_status']);
+        $this->assertEqualsWithDelta(1500.00, (float) $row['breakdown']['base_price'], 0.01);
+        $this->assertEqualsWithDelta(300.00, (float) $row['breakdown']['platform_fee'], 0.01);
     }
 }
