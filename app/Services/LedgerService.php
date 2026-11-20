@@ -536,11 +536,11 @@ class LedgerService
                 ->first();
 
             if (!$originalReceipt) {
-                DB::rollBack();
-                Log::warning('No PAS receipt found to reverse', [
-                    'booking_id' => $bookingId,
-                    'partner_id' => $partnerId,
-                ]);
+                // Settlement written by PasSettlementService: the partner earned
+                // on the gross value and holds the cash instead of a receipt.
+                $this->reverseGrossPasSettlement($bookingId, $partnerId);
+                DB::commit();
+
                 return;
             }
 
@@ -621,6 +621,88 @@ class LedgerService
             DB::rollBack();
             throw $e;
         }
+    }
+
+    /**
+     * Reverse the gross-based PAS settlement shape (PARTNER_EARNING + negative
+     * PAS_CASH_SETTLEMENT) inside the caller's transaction.
+     *
+     * The platform legs (fee / tax / discount) are left in place deliberately:
+     * on a multi-partner order a single partner's dispute must not erase the
+     * whole order's revenue. Those are corrected from the ledger once the
+     * dispute is resolved.
+     */
+    private function reverseGrossPasSettlement(string $bookingId, int $partnerId): void
+    {
+        $earning = LedgerEntry::where('booking_id', $bookingId)
+            ->where('user_id', $partnerId)
+            ->where('type', 'PARTNER_EARNING')
+            ->first();
+
+        if (!$earning) {
+            Log::warning('No PAS settlement found to reverse', [
+                'booking_id' => $bookingId,
+                'partner_id' => $partnerId,
+            ]);
+
+            return;
+        }
+
+        $earningAmount = (float) $earning->amount;
+
+        $settlement = LedgerEntry::where('booking_id', $bookingId)
+            ->where('user_id', $partnerId)
+            ->where('type', 'PAS_CASH_SETTLEMENT')
+            ->first();
+        $cashHeld = $settlement ? abs((float) $settlement->amount) : 0.0;
+
+        $currentBalance = (float) (LedgerEntry::where('user_id', $partnerId)
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->value('balance_after') ?? 0);
+
+        $currentBalance += LedgerEntry::signedAmount('EARNING_REVERSAL', $earningAmount);
+
+        $this->createLedgerEntry([
+            'booking_id' => $bookingId,
+            'user_id' => $partnerId,
+            'type' => 'EARNING_REVERSAL',
+            'amount' => $earningAmount,
+            'balance_after' => $currentBalance,
+            'narration' => "PAS EARNING REVERSED: order #{$bookingId} - the partner's share is withdrawn while the cash handover is disputed.",
+            'metadata' => [
+                'dispute_reversal' => true,
+                'reversed_at' => now()->toDateTimeString(),
+            ],
+        ]);
+
+        $this->updatePartnerBalance($partnerId, -$earningAmount, -$earningAmount, 0);
+
+        if ($cashHeld > 0) {
+            $currentBalance += $cashHeld;
+
+            $this->createLedgerEntry([
+                'booking_id' => $bookingId,
+                'user_id' => $partnerId,
+                'type' => 'PAS_CASH_SETTLEMENT',
+                'amount' => $cashHeld,
+                'balance_after' => $currentBalance,
+                'narration' => "PAS CASH SETTLEMENT REVERSED: order #{$bookingId} - the cash the partner was holding is no longer counted against them.",
+                'metadata' => [
+                    'dispute_reversal' => true,
+                    'reversed_at' => now()->toDateTimeString(),
+                ],
+            ]);
+
+            $this->updatePartnerBalance($partnerId, $cashHeld, 0, 0);
+        }
+
+        Log::warning('PAS gross settlement reversed', [
+            'booking_id' => $bookingId,
+            'partner_id' => $partnerId,
+            'earning' => $earningAmount,
+            'cash_held' => $cashHeld,
+        ]);
     }
 
     /**
@@ -1050,6 +1132,235 @@ class LedgerService
             DB::rollBack();
             throw $e;
         }
+    }
+
+    /**
+     * Record the promo discount the platform funded on an order.
+     *
+     * A discount is not simply "less cash": it is money the platform spends to
+     * buy the booking, so it gets its own row. One DISCOUNT_EXPENSE row per
+     * order, queryable by order / promo code / month, and reversible like any
+     * other leg.
+     */
+    public function recordDiscountExpense(\App\Models\Order $order): bool
+    {
+        $discount = round((float) ($order->discount_amount ?? 0), 2);
+
+        if ($discount <= 0) {
+            return false;
+        }
+
+        $platformUserId = (int) config('payment.platform_user_id', 1);
+
+        DB::beginTransaction();
+        try {
+            $this->lockUserChain($platformUserId);
+
+            $alreadyPosted = LedgerEntry::where('booking_id', $order->order_id)
+                ->where('type', 'DISCOUNT_EXPENSE')
+                ->whereRaw(\App\Support\SchemaCompat::jsonFlagExpression('metadata', 'reversed') . " <> 'true'")
+                ->exists();
+
+            if ($alreadyPosted) {
+                DB::rollBack();
+
+                return false;
+            }
+
+            $currentBalance = (float) (LedgerEntry::where('user_id', $platformUserId)
+                ->orderByDesc('created_at')
+                ->orderByDesc('id')
+                ->value('balance_after') ?? 0);
+
+            $this->createLedgerEntry([
+                'booking_id' => $order->order_id,
+                'user_id' => $platformUserId,
+                'type' => 'DISCOUNT_EXPENSE',
+                'amount' => $discount,
+                'balance_after' => $currentBalance + LedgerEntry::signedAmount('DISCOUNT_EXPENSE', $discount),
+                'narration' => 'PROMO DISCOUNT: platform funded NPR ' . number_format($discount, 2)
+                    . " on order #{$order->order_id}"
+                    . ($order->promo_code ? " (code {$order->promo_code})" : '')
+                    . '. The partner is paid on the gross service value.',
+                'metadata' => [
+                    'promo_code' => $order->promo_code,
+                    'subtotal' => (float) $order->subtotal,
+                    'total_amount' => (float) $order->total_amount,
+                ],
+            ]);
+
+            DB::commit();
+
+            return true;
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            Log::error('Failed to record discount expense', [
+                'order_id' => $order->order_id,
+                'discount' => $discount,
+                'error' => $e->getMessage(),
+            ]);
+
+            return false;
+        }
+    }
+
+    /**
+     * Record one partner's side of a PAS job settled in cash.
+     *
+     *   PARTNER_EARNING      + share of the GROSS service value (the platform
+     *                          funds promos, so a discount is never taken from
+     *                          the partner)
+     *   PAS_CASH_SETTLEMENT  - the cash the partner is holding for us
+     *
+     * Their sum is what the partner owes (negative) or is owed (positive); a
+     * fully discounted job therefore leaves a positive balance payable as a
+     * normal payout instead of a debt.
+     */
+    public function recordPasPartnerSettlement(
+        \App\Models\Order $order,
+        int $partnerId,
+        float $grossServiceValue,
+        float $cashCollected,
+        float $partnerEarning,
+        ?int $serviceId = null
+    ): void {
+        DB::beginTransaction();
+        try {
+            $this->lockUserChain($partnerId);
+
+            $alreadySettled = LedgerEntry::where('booking_id', $order->order_id)
+                ->where('user_id', $partnerId)
+                ->whereIn('type', ['PARTNER_EARNING', 'PAS_RECEIPT'])
+                ->exists();
+
+            if ($alreadySettled) {
+                DB::rollBack();
+                Log::warning('Duplicate PAS partner settlement prevented', [
+                    'order_id' => $order->order_id,
+                    'partner_id' => $partnerId,
+                ]);
+
+                return;
+            }
+
+            $currentBalance = (float) (LedgerEntry::where('user_id', $partnerId)
+                ->orderByDesc('created_at')
+                ->orderByDesc('id')
+                ->value('balance_after') ?? 0);
+
+            if ($partnerEarning > 0) {
+                $this->createLedgerEntry([
+                    'booking_id' => $order->order_id,
+                    'user_id' => $partnerId,
+                    'type' => 'PARTNER_EARNING',
+                    'amount' => $partnerEarning,
+                    'balance_after' => $currentBalance + $partnerEarning,
+                    'narration' => "PARTNER EARNING (cash job): order #{$order->order_id}. Gross service value NPR "
+                        . number_format($grossServiceValue, 2) . ', partner share NPR ' . number_format($partnerEarning, 2)
+                        . ', customer paid NPR ' . number_format($cashCollected, 2)
+                        . ' in cash. Any promo discount is funded by the platform.',
+                    'metadata' => [
+                        'payment' => 'pas',
+                        'gross_service_value' => $grossServiceValue,
+                        'cash_collected' => $cashCollected,
+                        'service_id' => $serviceId,
+                    ],
+                ]);
+
+                $this->updatePartnerBalance($partnerId, $partnerEarning, $partnerEarning, 0);
+                $currentBalance += $partnerEarning;
+            }
+
+            if ($cashCollected > 0) {
+                $this->createLedgerEntry([
+                    'booking_id' => $order->order_id,
+                    'user_id' => $partnerId,
+                    'type' => 'PAS_CASH_SETTLEMENT',
+                    'amount' => -$cashCollected,
+                    'balance_after' => $currentBalance - $cashCollected,
+                    'narration' => "PAS CASH SETTLEMENT: order #{$order->order_id} - NPR "
+                        . number_format($cashCollected, 2) . ' collected from the customer in cash. Net position after the earning: NPR '
+                        . number_format($partnerEarning - $cashCollected, 2) . ' (negative = owed to the platform).',
+                    'metadata' => [
+                        'payment' => 'pas',
+                        'cash_collected' => $cashCollected,
+                        'partner_earning' => $partnerEarning,
+                    ],
+                ]);
+
+                $this->updatePartnerBalance($partnerId, -$cashCollected, 0, 0);
+            }
+
+            DB::commit();
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            throw $e;
+        }
+    }
+
+    /**
+     * Platform side of a PAS cash order: fee, tax and the funded discount.
+     *
+     *   total_amount = partner_earnings + platform_fee + tax - discount
+     *
+     * The fee is measured on the GROSS service value (as is the partner's
+     * share), so the discount is visible as its own expense instead of quietly
+     * shrinking revenue.
+     */
+    public function recordPasPlatformLegs(\App\Models\Order $order, float $partnerEarnings): void
+    {
+        $platformUserId = (int) config('payment.platform_user_id', 1);
+        $gross = round((float) $order->subtotal, 2);
+        $tax = round((float) ($order->tax_amount ?? 0), 2);
+        $platformFee = round($gross - $partnerEarnings, 2);
+
+        DB::beginTransaction();
+        try {
+            $this->lockUserChain($platformUserId);
+
+            $currentBalance = (float) (LedgerEntry::where('user_id', $platformUserId)
+                ->orderByDesc('created_at')
+                ->orderByDesc('id')
+                ->value('balance_after') ?? 0);
+
+            $legs = array_filter([
+                'PLATFORM_FEE' => $platformFee,
+                'TAX_PAYABLE' => $tax,
+            ], fn ($amount) => $amount > 0);
+
+            foreach ($legs as $type => $amount) {
+                $exists = LedgerEntry::where('booking_id', $order->order_id)
+                    ->where('type', $type)
+                    ->exists();
+
+                if ($exists) {
+                    continue;
+                }
+
+                $currentBalance += LedgerEntry::signedAmount($type, (float) $amount);
+
+                $this->createLedgerEntry([
+                    'booking_id' => $order->order_id,
+                    'user_id' => $platformUserId,
+                    'type' => $type,
+                    'amount' => $amount,
+                    'balance_after' => $currentBalance,
+                    'narration' => $type === 'PLATFORM_FEE'
+                        ? "PLATFORM FEE (cash job): order #{$order->order_id} - gross service value NPR "
+                            . number_format($gross, 2) . ', partner earnings NPR ' . number_format($partnerEarnings, 2) . '.'
+                        : "TAX PAYABLE (cash job): order #{$order->order_id} - VAT collected in cash from the customer.",
+                    'metadata' => ['payment' => 'pas', 'gross_service_value' => $gross, 'partner_earnings' => $partnerEarnings],
+                ]);
+            }
+
+            DB::commit();
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            throw $e;
+        }
+
+        // Shared with the online path so every discounted order has one row.
+        $this->recordDiscountExpense($order);
     }
 
     /**

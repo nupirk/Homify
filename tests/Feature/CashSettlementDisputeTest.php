@@ -163,7 +163,7 @@ class CashSettlementDisputeTest extends TestCase
     {
         $order = $this->createPasOrder();
         $this->completeWithCash($order);
-        $this->assertSame(2, LedgerEntry::where('booking_id', $order->order_id)->where('type', 'PAS_RECEIPT')->count());
+        $this->assertSame(2, LedgerEntry::where('booking_id', $order->order_id)->where('type', 'PARTNER_EARNING')->count());
 
         // Customer disputes the cash declaration.
         Sanctum::actingAs($this->customer, ['*']);
@@ -175,15 +175,21 @@ class CashSettlementDisputeTest extends TestCase
         $this->assertTrue($order->cash_disputed);
         $this->assertFalse($order->cash_confirmed);
 
-        // Reversal entries for BOTH partners (one PAS_RECEIPT reversal each).
-        $receiptReversals = LedgerEntry::where('booking_id', $order->order_id)
-            ->where('type', 'PAS_RECEIPT')
+        // Reversal entries for BOTH partners (one EARNING_REVERSAL each).
+        $earningReversals = LedgerEntry::where('booking_id', $order->order_id)
+            ->where('type', 'EARNING_REVERSAL')
             ->whereRaw(SchemaCompat::jsonFlagExpression('metadata', 'dispute_reversal') . " = 'true'")
             ->get();
-        $this->assertSame(2, $receiptReversals->count());
-        foreach ($receiptReversals as $reversal) {
-            $this->assertLessThan(0, (float) $reversal->amount);
+        $this->assertSame(2, $earningReversals->count());
+        foreach ($earningReversals as $reversal) {
+            $this->assertGreaterThan(0, (float) $reversal->amount);
         }
+        // The gross earning is withdrawn, so neither partner keeps a share of
+        // a job the customer says was never paid in cash.
+        $this->assertSame(0.0, (float) LedgerEntry::where('booking_id', $order->order_id)
+            ->whereIn('type', ['PARTNER_EARNING', 'EARNING_REVERSAL'])
+            ->get()
+            ->sum(fn ($entry) => LedgerEntry::signedAmount($entry->type, (float) $entry->amount)));
 
         // Confirm-cash after dispute is refused (409).
         $this->postJson("/api/v1/bookings/{$order->order_id}/confirm-cash")
@@ -193,7 +199,7 @@ class CashSettlementDisputeTest extends TestCase
         $this->postJson("/api/v1/bookings/{$order->order_id}/dispute-cash", ['reason' => 'again'])
             ->assertStatus(409);
         $this->assertSame(2, LedgerEntry::where('booking_id', $order->order_id)
-            ->where('type', 'PAS_RECEIPT')
+            ->where('type', 'EARNING_REVERSAL')
             ->whereRaw(SchemaCompat::jsonFlagExpression('metadata', 'dispute_reversal') . " = 'true'")
             ->count());
     }
@@ -223,7 +229,7 @@ class CashSettlementDisputeTest extends TestCase
 
         // No reversal entries were posted.
         $this->assertSame(0, LedgerEntry::where('booking_id', $order->order_id)
-            ->where('type', 'PAS_RECEIPT')
+            ->where('type', 'EARNING_REVERSAL')
             ->whereRaw(SchemaCompat::jsonFlagExpression('metadata', 'dispute_reversal') . " = 'true'")
             ->count());
     }

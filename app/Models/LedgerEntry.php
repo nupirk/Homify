@@ -47,6 +47,7 @@ class LedgerEntry extends Model
         'TAX_PAYABLE',
         'PLATFORM_FEE',
         'EARNING_REVERSAL',
+        'DISCOUNT_EXPENSE',
     ];
 
     /**

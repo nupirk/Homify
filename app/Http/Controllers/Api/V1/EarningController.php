@@ -54,7 +54,38 @@ class EarningController extends Controller
             // For each earning entry, calculate standardized breakdown using PricingService
             $earnings->getCollection()->transform(function ($earning) {
                 try {
-                    if ($earning->booking_id) {
+                    // PAS cash jobs: the partner should see what the customer
+                    // actually paid and what the platform kept, instead of a
+                    // settlement line that looks like a deduction out of
+                    // nowhere. A promo never reduces the partner's share.
+                    if ($earning->booking_id && $earning->type === 'PARTNER_EARNING') {
+                        $settlement = LedgerEntry::where('booking_id', $earning->booking_id)
+                            ->where('user_id', $earning->user_id)
+                            ->where('type', 'PAS_CASH_SETTLEMENT')
+                            ->orderBy('id')
+                            ->first();
+
+                        if ($settlement) {
+                            $collected = abs((float) $settlement->amount);
+                            $earned = (float) $earning->amount;
+                            $gross = (float) ($earning->metadata['gross_service_value'] ?? 0);
+
+                            $earning->payment_mode = 'pas';
+                            $earning->cash_collected = $collected;
+                            $earning->platform_cut = round($collected - $earned, 2);
+                            $earning->breakdown = [
+                                'base_price' => $gross,
+                                'tax_amount' => 0,
+                                'platform_fee' => round($gross - $earned, 2),
+                                'partner_earning' => $earned,
+                                'commission_rate' => $gross > 0 ? round((($gross - $earned) / $gross) * 100, 1) : 0,
+                                'validation_status' => 'pas_settlement',
+                                'rates_source' => 'pas_settlement',
+                            ];
+                        }
+                    }
+
+                    if ($earning->booking_id && ($earning->payment_mode ?? null) !== 'pas') {
                         // Get the customer payment and tax from ledger entries
                         $customerPayment = LedgerEntry::where('booking_id', $earning->booking_id)
                             ->where('type', 'CUSTOMER_DEBIT')

@@ -19,6 +19,9 @@ class ReportController extends Controller
     /** The same two types the dashboard counts as net revenue. */
     private const REVENUE_TYPES = ['PLATFORM_FEE', 'TAX_PAYABLE'];
 
+    /** Promo spend: what the platform paid to discount orders. */
+    private const DISCOUNT_TYPE = 'DISCOUNT_EXPENSE';
+
     public function index(Request $request): View
     {
         [$from, $to] = $this->range($request);
@@ -52,6 +55,15 @@ class ReportController extends Controller
                 $rows->sum('entries'),
                 number_format((float) $rows->sum('total'), 2, '.', ''),
             ]);
+
+            // Promo discounts are platform spend, so they come off revenue.
+            $discounts = (float) $rows->where('type', self::DISCOUNT_TYPE)->sum('total');
+            $revenue = (float) $rows->whereIn('type', self::REVENUE_TYPES)->sum('total');
+
+            fputcsv($out, ['', '', '']);
+            fputcsv($out, ['Revenue (fee + tax)', '', number_format($revenue, 2, '.', '')]);
+            fputcsv($out, ['Promo discounts funded', '', number_format($discounts, 2, '.', '')]);
+            fputcsv($out, ['Net revenue', '', number_format($revenue - $discounts, 2, '.', '')]);
 
             fclose($out);
         }, $this->filename('revenue', $from, $to), ['Content-Type' => 'text/csv']);
@@ -110,7 +122,7 @@ class ReportController extends Controller
     {
         return DB::table('ledger_entries')
             ->selectRaw('type, COUNT(*) as entries, SUM(amount) as total')
-            ->whereIn('type', self::REVENUE_TYPES)
+            ->whereIn('type', array_merge(self::REVENUE_TYPES, [self::DISCOUNT_TYPE]))
             ->whereBetween('created_at', [$from, $to])
             ->groupBy('type')
             ->orderBy('type')

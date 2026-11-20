@@ -1379,8 +1379,12 @@ class BookingController extends Controller
         }
 
         foreach ($linesByPartner as $partnerId => $partnerLines) {
+            // Paid on the order's own line value. The partner-declared
+            // "final amount" is no longer a settlement input: on a prepaid
+            // booking the customer's payment and the partner's payout must
+            // describe the same money.
             $lineSubtotal = (float) $partnerLines->sum(function ($sr) {
-                return $sr->final_amount ?? (float) ($sr->orderItem->total_price ?? 0);
+                return (float) ($sr->orderItem->total_price ?? 0);
             });
 
             $serviceId = null;
@@ -1500,47 +1504,12 @@ class BookingController extends Controller
         // waiting for the customer to tap confirm. Customer confirmation
         // (confirm-cash) is now only a verification step; a dispute reverses
         // these entries via reversePASCashSettlement.
-        $linesByPartner = $completedRequests->filter(function ($sr) {
-            return !empty($sr->partner_id);
-        })->groupBy('partner_id');
-
-        foreach ($linesByPartner as $partnerId => $partnerLines) {
-            $lineAmount = (float) $partnerLines->sum(function ($sr) {
-                return $sr->final_amount ?? (float) ($sr->orderItem->total_price ?? 0);
-            });
-
-            $serviceId = null;
-            $firstWithItem = $partnerLines->first(fn ($sr) => !empty($sr->orderItem?->service_id));
-            if ($firstWithItem) {
-                $serviceId = $firstWithItem->orderItem->service_id;
-            }
-
-            if ($lineAmount <= 0) {
-                Log::warning('Skipping zero PAS line settlement', [
-                    'order_id' => $order->order_id,
-                    'partner_id' => $partnerId,
-                ]);
-                continue;
-            }
-
-            app(LedgerService::class)->recordPASReceipt(
-                (int) $partnerId,
-                $order->order_id,
-                $lineAmount,
-                [
-                    'confirmed_via' => 'partner_completion',
-                    'confirmed_at' => now()->toDateTimeString(),
-                    'subtotal' => $lineAmount,
-                    'service_id' => $serviceId,
-                ]
-            );
-
-            Log::info('PAS cash settlement recorded at completion (per line)', [
-                'order_id' => $order->order_id,
-                'partner_id' => $partnerId,
-                'line_amount' => $lineAmount,
-            ]);
-        }
+        // One calculator for the whole order (PasSettlementService): the
+        // customer's total_amount is split across the completed lines, each
+        // partner earns their share of the GROSS service value, and the
+        // platform fee / tax / funded discount are posted against the platform
+        // account. The partner no longer declares the amount they collected.
+        app(\App\Services\PasSettlementService::class)->settle($order);
 
         NotificationService::sendWithPush(
             $order->user_id,

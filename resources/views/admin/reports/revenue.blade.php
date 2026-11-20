@@ -8,7 +8,7 @@
             <div>
                 <h1 class="text-2xl font-bold text-gray-900">Revenue</h1>
                 <p class="text-gray-600 mt-1">
-                    {{ $from->format('M d, Y') }} – {{ $to->format('M d, Y') }} · platform fees and tax owed from the ledger
+                    {{ $from->format('M d, Y') }} – {{ $to->format('M d, Y') }} · platform fees, tax owed and promo spend from the ledger
                 </p>
             </div>
             <div class="flex space-x-2">
@@ -58,7 +58,16 @@
                         @forelse ($rows as $row)
                             <tr class="hover:bg-gray-50">
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                    {{ $row->type === 'PLATFORM_FEE' ? 'Platform fee' : 'Tax owed' }}
+                                    @switch($row->type)
+                                        @case('PLATFORM_FEE')
+                                            Platform fee
+                                            @break
+                                        @case('TAX_PAYABLE')
+                                            Tax owed
+                                            @break
+                                        @default
+                                            Promo discount funded
+                                    @endswitch
                                     <span class="text-gray-400 text-xs">({{ $row->type }})</span>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-700">{{ $row->entries }}</td>
@@ -74,6 +83,10 @@
                             </tr>
                         @endforelse
                     </tbody>
+                    @php
+                        $revenue = (float) $rows->whereIn('type', ['PLATFORM_FEE', 'TAX_PAYABLE'])->sum('total');
+                        $discounts = (float) $rows->where('type', 'DISCOUNT_EXPENSE')->sum('total');
+                    @endphp
                     <tfoot class="bg-gray-50">
                         <tr>
                             <th class="px-6 py-4 text-left text-sm font-semibold text-gray-900">Total</th>
@@ -81,6 +94,18 @@
                             <th class="px-6 py-4 text-right text-sm font-semibold text-gray-900">
                                 NPR {{ number_format((float) $rows->sum('total'), 2) }}
                             </th>
+                        </tr>
+                        <tr>
+                            <th colspan="2" class="px-6 py-2 text-left text-sm font-medium text-gray-700">Revenue (fee + tax)</th>
+                            <th class="px-6 py-2 text-right text-sm font-medium text-gray-700">NPR {{ number_format($revenue, 2) }}</th>
+                        </tr>
+                        <tr>
+                            <th colspan="2" class="px-6 py-2 text-left text-sm font-medium text-gray-700">Promo discounts funded</th>
+                            <th class="px-6 py-2 text-right text-sm font-medium text-gray-700">NPR {{ number_format($discounts, 2) }}</th>
+                        </tr>
+                        <tr>
+                            <th colspan="2" class="px-6 py-4 text-left text-sm font-bold text-gray-900">Net revenue</th>
+                            <th class="px-6 py-4 text-right text-sm font-bold text-gray-900">NPR {{ number_format($revenue - $discounts, 2) }}</th>
                         </tr>
                     </tfoot>
                 </table>

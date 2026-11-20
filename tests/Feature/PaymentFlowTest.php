@@ -41,6 +41,20 @@ class PaymentFlowTest extends TestCase
     {
         parent::setUp();
 
+        // The platform account (config('payment.platform_user_id')) owns the
+        // fee / tax / discount legs, so it must exist for the ledger FK.
+        User::unguarded(fn () => User::create([
+            'user_id' => 1,
+            'first_name' => 'Platform',
+            'last_name' => 'System',
+            'email' => 'platform@homify.local',
+            'phone' => '9800000001',
+            'password' => bcrypt('secret'),
+            'user_type' => 'admin',
+            'is_active' => true,
+        ]));
+        $this->syncUserIdSequence();
+
         $this->customer = User::create([
             'first_name' => 'Test',
             'last_name' => 'Customer',
@@ -191,19 +205,21 @@ class PaymentFlowTest extends TestCase
         $this->assertSame('cash', $order->payment_received);
         $this->assertFalse((bool) $order->cash_confirmed);
 
-        // The ledger is built at completion: the partner's earnings must not
-        // wait for the customer to tap confirm.
-        $types = LedgerEntry::where('booking_id', $order->order_id)
-            ->pluck('type')
-            ->sort()
-            ->values()
-            ->all();
-        $this->assertSame(
-            ['PAS_CASH_SETTLEMENT', 'PAS_COMMISSION', 'PAS_RECEIPT'],
-            $types,
-            'Completion must post PAS_RECEIPT, PAS_CASH_SETTLEMENT and PAS_COMMISSION'
+        // The ledger is built at completion and follows the promo rule: the
+        // partner earns their share of the GROSS line (1500 -> 1200), holds the
+        // cash the customer actually paid (1695), and the platform books its
+        // fee (300) and the VAT (195) - 1200 + 300 + 195 = 1695.
+        $rows = LedgerEntry::where('booking_id', $order->order_id)->get()->keyBy('type');
+        $this->assertEqualsCanonicalizing(
+            ['PARTNER_EARNING', 'PAS_CASH_SETTLEMENT', 'PLATFORM_FEE', 'TAX_PAYABLE'],
+            $rows->keys()->all(),
+            'Completion must post the earning, the cash leg and the platform legs'
         );
-        $this->assertSame(3, LedgerEntry::where('booking_id', $order->order_id)->count());
+        $this->assertEqualsWithDelta(1200.00, (float) $rows['PARTNER_EARNING']->amount, 0.01, 'Partner earns 80% of the gross line');
+        $this->assertEqualsWithDelta(-1695.00, (float) $rows['PAS_CASH_SETTLEMENT']->amount, 0.01, 'Cash leg must be exactly the order total');
+        $this->assertEqualsWithDelta(300.00, (float) $rows['PLATFORM_FEE']->amount, 0.01);
+        $this->assertEqualsWithDelta(195.00, (float) $rows['TAX_PAYABLE']->amount, 0.01);
+        $this->assertSame(4, LedgerEntry::where('booking_id', $order->order_id)->count());
     }
 
     public function test_customer_confirmation_verifies_without_duplicating_ledger(): void
@@ -213,7 +229,7 @@ class PaymentFlowTest extends TestCase
         $this->addCompletionDocument($order);
         $this->partnerCompletesWithCash($order);
 
-        $this->assertSame(3, LedgerEntry::where('booking_id', $order->order_id)->count());
+        $this->assertSame(4, LedgerEntry::where('booking_id', $order->order_id)->count());
 
         Sanctum::actingAs($this->customer, ['*']);
         $this->postJson("/api/v1/bookings/{$order->order_id}/confirm-cash")
@@ -225,15 +241,15 @@ class PaymentFlowTest extends TestCase
         $this->assertNotNull($order->cash_confirmed_at);
 
         // Confirmation is verification only - the ledger must not grow.
-        $this->assertSame(3, LedgerEntry::where('booking_id', $order->order_id)->count());
-        $this->assertSame(1, LedgerEntry::where('booking_id', $order->order_id)->where('type', 'PAS_RECEIPT')->count());
+        $this->assertSame(4, LedgerEntry::where('booking_id', $order->order_id)->count());
+        $this->assertSame(1, LedgerEntry::where('booking_id', $order->order_id)->where('type', 'PARTNER_EARNING')->count());
 
         // A second confirmation must be idempotent and must not double-post.
         $this->postJson("/api/v1/bookings/{$order->order_id}/confirm-cash")
             ->assertStatus(200)
             ->assertJsonPath('message', 'Cash payment already confirmed');
-        $this->assertSame(1, LedgerEntry::where('booking_id', $order->order_id)->where('type', 'PAS_RECEIPT')->count());
-        $this->assertSame(3, LedgerEntry::where('booking_id', $order->order_id)->count());
+        $this->assertSame(1, LedgerEntry::where('booking_id', $order->order_id)->where('type', 'PARTNER_EARNING')->count());
+        $this->assertSame(4, LedgerEntry::where('booking_id', $order->order_id)->count());
     }
 
     public function test_prepaid_order_blocks_accept_and_start_work_until_paid(): void
@@ -334,7 +350,7 @@ class PaymentFlowTest extends TestCase
         $this->partnerCompletesWithCash($order);
 
         // The completion posted the settlement...
-        $this->assertSame(3, LedgerEntry::where('booking_id', $order->order_id)->count());
+        $this->assertSame(4, LedgerEntry::where('booking_id', $order->order_id)->count());
 
         Sanctum::actingAs($this->customer, ['*']);
         $this->postJson("/api/v1/bookings/{$order->order_id}/dispute-cash", [
@@ -349,12 +365,17 @@ class PaymentFlowTest extends TestCase
         $this->postJson("/api/v1/bookings/{$order->order_id}/confirm-cash")
             ->assertStatus(409);
 
-        // The dispute reversed the settlement: each original entry has an
-        // opposite-sign reversal, so the partner nets zero for this job.
-        $receiptNet = (float) LedgerEntry::where('booking_id', $order->order_id)
-            ->where('type', 'PAS_RECEIPT')
-            ->sum('amount');
-        $this->assertSame(0.0, $receiptNet, 'Disputed job must net zero earnings');
+        // The dispute reversed the partner's side: the earning is clawed back
+        // and the cash they were holding stops counting against them, so the
+        // partner nets zero for this job.
+        $earningNet = LedgerEntry::where('booking_id', $order->order_id)
+            ->whereIn('type', ['PARTNER_EARNING', 'EARNING_REVERSAL'])
+            ->get()
+            ->sum(fn ($entry) => LedgerEntry::signedAmount($entry->type, (float) $entry->amount));
+        $this->assertSame(0.0, (float) $earningNet, 'Disputed job must net zero earnings');
+        $this->assertSame(0.0, (float) LedgerEntry::where('booking_id', $order->order_id)
+            ->where('type', 'PAS_CASH_SETTLEMENT')
+            ->sum('amount'), 'The cash the partner was holding must be cleared');
         $this->assertSame(6, LedgerEntry::where('booking_id', $order->order_id)->count());
     }
 
@@ -375,9 +396,15 @@ class PaymentFlowTest extends TestCase
             ->where('booking_id', $order->order_id)
             ->pluck('type')
             ->all();
-        $this->assertContains('PAS_RECEIPT', $entries);
+        $this->assertContains('PARTNER_EARNING', $entries);
         $this->assertContains('PAS_CASH_SETTLEMENT', $entries);
-        $this->assertContains('PAS_COMMISSION', $entries);
+
+        // The row tells the partner what the customer paid and what the
+        // platform kept - the split is never a mystery.
+        $earningRow = collect($response->json('data.earnings.data'))
+            ->firstWhere('type', 'PARTNER_EARNING');
+        $this->assertEqualsWithDelta(1695.00, (float) $earningRow['cash_collected'], 0.01);
+        $this->assertEqualsWithDelta(495.00, (float) $earningRow['platform_cut'], 0.01);
 
         // Lifetime stats must be the NET total (receipt - commission).
         $this->assertSame(
@@ -480,8 +507,10 @@ class PaymentFlowTest extends TestCase
         $this->assertFalse((bool) $order->cash_confirmed);
 
         // No double-charge: the late gateway landing must not add entries on
-        // top of the completion-time settlement (3 PAS entries only).
-        $this->assertSame(3, LedgerEntry::where('booking_id', $order->order_id)->count());
-        $this->assertSame(0, LedgerEntry::where('booking_id', $order->order_id)->whereNotIn('type', ['PAS_RECEIPT', 'PAS_CASH_SETTLEMENT', 'PAS_COMMISSION'])->count());
+        // top of the completion-time settlement (earning, cash, fee, tax).
+        $this->assertSame(4, LedgerEntry::where('booking_id', $order->order_id)->count());
+        $this->assertSame(0, LedgerEntry::where('booking_id', $order->order_id)
+            ->whereNotIn('type', ['PARTNER_EARNING', 'PAS_CASH_SETTLEMENT', 'PLATFORM_FEE', 'TAX_PAYABLE'])
+            ->count());
     }
 }

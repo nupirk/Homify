@@ -447,9 +447,18 @@ class EndToEndJourneyTest extends TestCase
 
         $ledgerTypes = LedgerEntry::where('booking_id', $order->order_id)
             ->pluck('type')->sort()->values()->all();
+        // Partner earns on the gross line, holds the customer's cash, the
+        // platform books its fee and the VAT, and the referral promo it funded
+        // is its own expense leg.
         $this->assertSame(
-            ['PAS_CASH_SETTLEMENT', 'PAS_COMMISSION', 'PAS_RECEIPT'],
+            ['DISCOUNT_EXPENSE', 'PARTNER_EARNING', 'PAS_CASH_SETTLEMENT', 'PLATFORM_FEE', 'TAX_PAYABLE'],
             $ledgerTypes
+        );
+        $this->assertEqualsWithDelta(
+            (float) $order->discount_amount,
+            (float) LedgerEntry::where('booking_id', $order->order_id)->where('type', 'DISCOUNT_EXPENSE')->value('amount'),
+            0.01,
+            'The promo must be booked as platform spend'
         );
 
         $this->assertTrue(
@@ -499,7 +508,7 @@ class EndToEndJourneyTest extends TestCase
 
         // Confirmation is verification only - the ledger must not grow.
         $this->assertSame(
-            3,
+            5,
             LedgerEntry::where('booking_id', $order->order_id)->count()
         );
 
@@ -510,12 +519,11 @@ class EndToEndJourneyTest extends TestCase
         $entryTypes = collect($earnings->json('data.earnings.data'))
             ->where('booking_id', $order->order_id)
             ->pluck('type')->all();
-        $this->assertContains('PAS_RECEIPT', $entryTypes);
+        $this->assertContains('PARTNER_EARNING', $entryTypes);
         $this->assertContains('PAS_CASH_SETTLEMENT', $entryTypes);
-        $this->assertContains('PAS_COMMISSION', $entryTypes);
 
-        // No commission rules are seeded: the 80% fallback of the 1500 line
-        // gives the partner a net 1200 (receipt 1500 - commission 300).
+        // No commission rules are seeded: the 80% fallback of the gross 1500
+        // line gives the partner 1200.
         $this->assertEqualsWithDelta(
             1200.0,
             (float) $earnings->json('data.stats.total_earnings'),

@@ -100,6 +100,10 @@ class PaymentLedgerService
 
             DB::commit();
 
+            // The promo the platform funded is a cost of its own, not a
+            // discount the partner absorbs.
+            app(\App\Services\LedgerService::class)->recordDiscountExpense($order);
+
             Log::info('Payment success ledger entries created', [
                 'order_id' => $order->order_id,
                 'service_price' => $servicePrice,
