@@ -9,6 +9,7 @@ use App\Models\Service;
 use App\Models\ServicePricing;
 use App\Models\Category;
 use App\Http\Resources\ServiceResource;
+use App\Support\PricingUnit;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
@@ -163,7 +164,12 @@ class ServiceController extends Controller
                 'pricing' => 'nullable|array',
                 'pricing.*.tier_name' => 'required_with:pricing|string|in:basic,standard,premium',
                 'pricing.*.base_price' => 'required_with:pricing|numeric|min:0',
-                'pricing.*.estimated_duration_min' => 'required_with:pricing|integer|min:1',
+                // Per-piece and per-complete pricing often has no duration, so
+                // the minutes field is optional; it still has to be sane when set.
+                'pricing.*.estimated_duration_min' => 'nullable|integer|min:1',
+                // How the tier is billed: duration, piece, nos, unit, complete
+                // (legacy hour/sqft/room/kg/liter/fixed stay acceptable).
+                'pricing.*.unit' => ['nullable', Rule::in(PricingUnit::values())],
                 'pricing.*.description' => 'nullable|string',
                 'pricing.*.is_active' => 'nullable|boolean',
                 'pricing.*.pricing_id' => 'nullable|exists:service_pricing,pricing_id',
@@ -209,7 +215,8 @@ class ServiceController extends Controller
                         'service_id' => $service->service_id,
                         'tier_name' => $pricing['tier_name'],
                         'base_price' => $pricing['base_price'],
-                        'estimated_duration_min' => $pricing['estimated_duration_min'],
+                        'estimated_duration_min' => $pricing['estimated_duration_min'] ?? null,
+                        'unit' => $pricing['unit'] ?? PricingUnit::DEFAULT,
                         'description' => $pricing['description'] ?? null,
                         'is_active' => $pricing['is_active'] ?? true,
                     ];

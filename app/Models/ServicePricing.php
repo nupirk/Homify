@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\PricingUnit;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -54,6 +55,12 @@ class ServicePricing extends Model
 
     public function getFormattedPriceAttribute(): string
     {
-        return 'Rs ' . $this->base_price . ' per ' . $this->unit;
+        return 'Rs ' . $this->base_price . ' per ' . strtolower(PricingUnit::label($this->unit));
+    }
+
+    /** Display label for the billing basis, e.g. "Nos" or "Complete". */
+    public function getUnitLabelAttribute(): string
+    {
+        return PricingUnit::label($this->unit);
     }
 }

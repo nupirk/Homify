@@ -72,6 +72,9 @@
                                             Rs.{{ $service->price_range }}
                                         </p>
                                     @endif
+                                    <p class="text-sm text-gray-500 mt-1">
+                                        Billed per {{ strtolower($service->pricing->first()->unit_label) }}
+                                    </p>
                                 @else
                                     <p class="text-lg text-gray-400">No pricing set</p>
                                 @endif

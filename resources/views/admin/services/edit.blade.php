@@ -109,7 +109,7 @@
                                                 </button>
                                             </div>
 
-                                            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                            <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
                                                 <input type="hidden" name="pricing[{{ $index }}][pricing_id]"
                                                     value="{{ $pricing->pricing_id ?? '' }}">
 
@@ -141,13 +141,29 @@
                                                 </div>
 
                                                 <div>
+                                                    <label class="block text-sm font-medium text-gray-700 mb-1">Billing
+                                                        Basis</label>
+                                                    @php
+                                                        $unitValue = old("pricing.{$index}.unit", $pricing->unit ?? \App\Support\PricingUnit::DEFAULT);
+                                                    @endphp
+                                                    <select name="pricing[{{ $index }}][unit]"
+                                                        class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                                                        @foreach (\App\Support\PricingUnit::optionsFor($unitValue) as $unitOption => $unitLabel)
+                                                            <option value="{{ $unitOption }}"
+                                                                {{ $unitValue === $unitOption ? 'selected' : '' }}>
+                                                                {{ $unitLabel }}</option>
+                                                        @endforeach
+                                                    </select>
+                                                </div>
+
+                                                <div>
                                                     <label class="block text-sm font-medium text-gray-700 mb-1">Duration
                                                         (minutes)</label>
                                                     <input type="number" min="1"
                                                         name="pricing[{{ $index }}][estimated_duration_min]"
                                                         value="{{ old("pricing.{$index}.estimated_duration_min", $pricing->estimated_duration_min ?? '') }}"
                                                         class="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                                                        placeholder="60">
+                                                        placeholder="Optional">
                                                 </div>
 
                                                 <div>
@@ -185,7 +201,7 @@
                                             </button>
                                         </div>
 
-                                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                        <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
                                             <input type="hidden" name="pricing[0][pricing_id]" value="">
 
                                             <div>
@@ -209,12 +225,25 @@
                                             </div>
 
                                             <div>
+                                                <label class="block text-sm font-medium text-gray-700 mb-1">Billing
+                                                    Basis</label>
+                                                <select name="pricing[0][unit]"
+                                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                                                    @foreach (\App\Support\PricingUnit::OPTIONS as $unitOption => $unitLabel)
+                                                        <option value="{{ $unitOption }}"
+                                                            {{ $unitOption === \App\Support\PricingUnit::DEFAULT ? 'selected' : '' }}>
+                                                            {{ $unitLabel }}</option>
+                                                    @endforeach
+                                                </select>
+                                            </div>
+
+                                            <div>
                                                 <label class="block text-sm font-medium text-gray-700 mb-1">Duration
                                                     (minutes)</label>
                                                 <input type="number" min="1"
                                                     name="pricing[0][estimated_duration_min]"
                                                     class="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                                                    placeholder="60">
+                                                    placeholder="Optional">
                                             </div>
 
                                             <div>
@@ -562,7 +591,7 @@
                     </button>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
                     <input type="hidden" name="pricing[${pricingIndex}][pricing_id]" value="">
 
                     <div>
@@ -581,9 +610,18 @@
                     </div>
 
                     <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Billing Basis</label>
+                        <select name="pricing[${pricingIndex}][unit]" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                            @foreach (\App\Support\PricingUnit::OPTIONS as $unitOption => $unitLabel)
+                                <option value="{{ $unitOption }}"{{ $unitOption === \App\Support\PricingUnit::DEFAULT ? ' selected' : '' }}>{{ $unitLabel }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Duration (minutes)</label>
                         <input type="number" min="1" name="pricing[${pricingIndex}][estimated_duration_min]"
-                               class="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="60">
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="Optional">
                     </div>
 
                     <div>

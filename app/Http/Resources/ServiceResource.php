@@ -57,6 +57,7 @@ class ServiceResource extends JsonResource
                         'estimated_duration_min' => $price->estimated_duration_min,
                         'description' => $price->description,
                         'unit' => $price->unit,
+                        'unit_label' => $price->unit_label,
                         'is_active' => (bool) $price->is_active,
                     ];
                 });
